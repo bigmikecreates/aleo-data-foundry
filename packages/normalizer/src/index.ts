@@ -7,3 +7,4 @@ export {
   normalizeDeployment,
   normalizeMappingChange,
 } from "./normalizer.js";
+export type { TransformResult } from "./normalizer.js";

@@ -40,29 +40,68 @@ const mockBlock: ProvableBlockResponse = {
   transactions: [],
 };
 
+// ─── normalizeBlock ──────────────────────────────────────────────
+
 describe("normalizeBlock", () => {
   it("normalizes a valid block", () => {
-    const result = normalizeBlock("testnet", 12345, mockBlock);
-    expect(result.version).toBe(1);
-    expect(result.network).toBe("testnet");
-    expect(result.height).toBe(12345);
-    expect(result.blockHash).toBe("ab17upp");
-    expect(result.previousHash).toBe("ab1h8ws");
-    expect(result.transactionsCount).toBe(0);
-    expect(result.abortedTransactionsCount).toBe(0);
+    const { canonical, serving } = normalizeBlock("testnet", 12345, mockBlock);
+    expect(canonical.version).toBe(1);
+    expect(canonical.network).toBe("testnet");
+    expect(canonical.height).toBe(12345);
+    expect(canonical.blockHash).toBe("ab17upp");
+    expect(canonical.previousHash).toBe("ab1h8ws");
+    expect(canonical.transactionsCount).toBe(0);
+    expect(canonical.abortedTransactionsCount).toBe(0);
+  });
+
+  it("produces correct serving model", () => {
+    const { serving } = normalizeBlock("testnet", 12345, mockBlock);
+    expect(serving.height).toBe(12345);
+    expect(serving.block_hash).toBe("ab17upp");
+    expect(serving.previous_hash).toBe("ab1h8ws");
+    expect(serving.network).toBe("testnet");
+    expect(serving.transactions_count).toBe(0);
+    expect(serving.aborted_transactions_count).toBe(0);
+    expect(serving.created_at).toBeDefined();
+    expect(new Date(serving.created_at).toISOString()).toBe(serving.created_at);
   });
 
   it("converts unix timestamp to ISO 8601", () => {
-    const result = normalizeBlock("testnet", 1, mockBlock);
-    expect(result.timestamp).toBe("2024-06-02T11:36:49.000Z");
+    const { canonical, serving } = normalizeBlock("testnet", 1, mockBlock);
+    expect(canonical.timestamp).toBe("2024-06-02T11:36:49.000Z");
+    expect(serving.timestamp).toBe("2024-06-02T11:36:49.000Z");
   });
 
   it("counts aborted transactions", () => {
     const block = { ...mockBlock, aborted_transaction_ids: ["tx1", "tx2"] };
-    const result = normalizeBlock("testnet", 1, block);
-    expect(result.abortedTransactionsCount).toBe(2);
+    const { canonical, serving } = normalizeBlock("testnet", 1, block);
+    expect(canonical.abortedTransactionsCount).toBe(2);
+    expect(serving.aborted_transactions_count).toBe(2);
+  });
+
+  it("defaults aborted count to 0 when field is missing", () => {
+    const block = { ...mockBlock };
+    delete block.aborted_transaction_ids;
+    const { canonical, serving } = normalizeBlock("testnet", 1, block);
+    expect(canonical.abortedTransactionsCount).toBe(0);
+    expect(serving.aborted_transactions_count).toBe(0);
+  });
+
+  it("serving mirrors canonical data correctly", () => {
+    const { canonical, serving } = normalizeBlock("mainnet", 999, mockBlock);
+    expect(serving.network).toBe(canonical.network);
+    expect(serving.height).toBe(canonical.height);
+    expect(serving.transactions_count).toBe(canonical.transactionsCount);
+    expect(serving.aborted_transactions_count).toBe(canonical.abortedTransactionsCount);
+    expect(serving.coinbase_target).toBe(canonical.coinbaseTarget);
+    expect(serving.proof_target).toBe(canonical.proofTarget);
+    expect(serving.round).toBe(canonical.round);
+    expect(serving.transactions_root).toBe(canonical.transactionsRoot);
+    expect(serving.previous_state_root).toBe(canonical.previousStateRoot);
   });
 });
+
+// ─── normalizeTransaction ────────────────────────────────────────
 
 describe("normalizeTransaction", () => {
   const mockTx: ProvableBlockTransaction = {
@@ -81,24 +120,52 @@ describe("normalizeTransaction", () => {
   };
 
   it("normalizes a valid transaction", () => {
-    const result = normalizeTransaction("testnet", 1, "ab17upp", mockTx);
-    expect(result.version).toBe(1);
-    expect(result.txId).toBe("at1tx");
-    expect(result.type).toBe("execute");
-    expect(result.status).toBe("accepted");
-    expect(result.indexInBlock).toBe(0);
+    const { canonical, serving } = normalizeTransaction("testnet", 1, "ab17upp", mockTx);
+    expect(canonical.version).toBe(1);
+    expect(canonical.txId).toBe("at1tx");
+    expect(canonical.type).toBe("execute");
+    expect(canonical.status).toBe("accepted");
+    expect(canonical.indexInBlock).toBe(0);
+  });
+
+  it("produces correct serving model", () => {
+    const { serving } = normalizeTransaction("testnet", 1, "ab17upp", mockTx);
+    expect(serving.tx_id).toBe("at1tx");
+    expect(serving.block_height).toBe(1);
+    expect(serving.block_hash).toBe("ab17upp");
+    expect(serving.network).toBe("testnet");
+    expect(serving.type).toBe("execute");
+    expect(serving.status).toBe("accepted");
+    expect(serving.index_in_block).toBe(0);
+    expect(serving.global_state_root).toBe("sr1abc");
+    expect(serving.created_at).toBeDefined();
   });
 
   it("maps rejected status", () => {
     const tx = { ...mockTx, status: "rejected" };
-    const result = normalizeTransaction("testnet", 1, "ab17upp", tx);
-    expect(result.status).toBe("rejected");
+    const { canonical, serving } = normalizeTransaction("testnet", 1, "ab17upp", tx);
+    expect(canonical.status).toBe("rejected");
+    expect(serving.status).toBe("rejected");
   });
 
   it("maps deploy type", () => {
     const tx = { ...mockTx, transaction: { ...mockTx.transaction, type: "deploy" } };
-    const result = normalizeTransaction("testnet", 1, "ab17upp", tx);
-    expect(result.type).toBe("deploy");
+    const { canonical, serving } = normalizeTransaction("testnet", 1, "ab17upp", tx);
+    expect(canonical.type).toBe("deploy");
+    expect(serving.type).toBe("deploy");
+  });
+
+  it("maps fee type", () => {
+    const tx = { ...mockTx, transaction: { ...mockTx.transaction, type: "fee" } };
+    const { canonical, serving } = normalizeTransaction("testnet", 1, "ab17upp", tx);
+    expect(canonical.type).toBe("fee");
+    expect(serving.type).toBe("fee");
+  });
+
+  it("defaults unknown type to execute", () => {
+    const tx = { ...mockTx, transaction: { ...mockTx.transaction, type: "unknown" } };
+    const { canonical } = normalizeTransaction("testnet", 1, "ab17upp", tx);
+    expect(canonical.type).toBe("execute");
   });
 
   it("extracts global state root from fee-only body", () => {
@@ -124,8 +191,9 @@ describe("normalizeTransaction", () => {
         },
       },
     };
-    const result = normalizeTransaction("testnet", 1, "ab17upp", tx);
-    expect(result.globalStateRoot).toBe("sr1fee");
+    const { canonical, serving } = normalizeTransaction("testnet", 1, "ab17upp", tx);
+    expect(canonical.globalStateRoot).toBe("sr1fee");
+    expect(serving.global_state_root).toBe("sr1fee");
   });
 
   it("defaults global state root to empty when no execution or fee", () => {
@@ -138,10 +206,25 @@ describe("normalizeTransaction", () => {
         id: "at1deploy",
       },
     };
-    const result = normalizeTransaction("testnet", 1, "ab17upp", tx);
-    expect(result.globalStateRoot).toBe("");
+    const { canonical, serving } = normalizeTransaction("testnet", 1, "ab17upp", tx);
+    expect(canonical.globalStateRoot).toBe("");
+    expect(serving.global_state_root).toBe("");
+  });
+
+  it("serving mirrors canonical data", () => {
+    const { canonical, serving } = normalizeTransaction("mainnet", 42, "hash123", mockTx);
+    expect(serving.tx_id).toBe(canonical.txId);
+    expect(serving.block_height).toBe(canonical.blockHeight);
+    expect(serving.block_hash).toBe(canonical.blockHash);
+    expect(serving.network).toBe(canonical.network);
+    expect(serving.type).toBe(canonical.type);
+    expect(serving.status).toBe(canonical.status);
+    expect(serving.index_in_block).toBe(canonical.indexInBlock);
+    expect(serving.global_state_root).toBe(canonical.globalStateRoot);
   });
 });
+
+// ─── normalizeTransition ─────────────────────────────────────────
 
 describe("normalizeTransition", () => {
   const mockTransition: ProvableTransition = {
@@ -155,22 +238,59 @@ describe("normalizeTransition", () => {
   };
 
   it("normalizes a valid transition", () => {
-    const result = normalizeTransition("testnet", "at1tx", mockTransition);
-    expect(result.version).toBe(1);
-    expect(result.transitionId).toBe("au1tr");
-    expect(result.programId).toBe("credits.aleo");
-    expect(result.functionName).toBe("transfer_public");
-    expect(result.inputs).toHaveLength(1);
-    expect(result.outputs).toHaveLength(1);
+    const { canonical, serving } = normalizeTransition("testnet", "at1tx", mockTransition);
+    expect(canonical.version).toBe(1);
+    expect(canonical.transitionId).toBe("au1tr");
+    expect(canonical.programId).toBe("credits.aleo");
+    expect(canonical.functionName).toBe("transfer_public");
+    expect(canonical.inputs).toHaveLength(1);
+    expect(canonical.outputs).toHaveLength(1);
+  });
+
+  it("produces correct serving model", () => {
+    const { serving } = normalizeTransition("testnet", "at1tx", mockTransition);
+    expect(serving.transition_id).toBe("au1tr");
+    expect(serving.tx_id).toBe("at1tx");
+    expect(serving.program_id).toBe("credits.aleo");
+    expect(serving.function_name).toBe("transfer_public");
+    expect(serving.tpk).toBe("tpk123");
+    expect(serving.tcm).toBe("tcm456");
+    expect(serving.created_at).toBeDefined();
+  });
+
+  it("stringifies inputs and outputs as JSON", () => {
+    const { serving } = normalizeTransition("testnet", "at1tx", mockTransition);
+    expect(typeof serving.inputs_json).toBe("string");
+    expect(typeof serving.outputs_json).toBe("string");
+    const parsedInputs = JSON.parse(serving.inputs_json);
+    expect(parsedInputs).toHaveLength(1);
+    expect(parsedInputs[0].type).toBe("public");
+    const parsedOutputs = JSON.parse(serving.outputs_json);
+    expect(parsedOutputs).toHaveLength(1);
+    expect(parsedOutputs[0].type).toBe("future");
   });
 
   it("handles empty inputs and outputs", () => {
     const transition = { ...mockTransition, inputs: [], outputs: [] };
-    const result = normalizeTransition("testnet", "at1tx", transition);
-    expect(result.inputs).toHaveLength(0);
-    expect(result.outputs).toHaveLength(0);
+    const { canonical, serving } = normalizeTransition("testnet", "at1tx", transition);
+    expect(canonical.inputs).toHaveLength(0);
+    expect(canonical.outputs).toHaveLength(0);
+    expect(serving.inputs_json).toBe("[]");
+    expect(serving.outputs_json).toBe("[]");
+  });
+
+  it("serving mirrors canonical data", () => {
+    const { canonical, serving } = normalizeTransition("testnet", "at1tx", mockTransition);
+    expect(serving.transition_id).toBe(canonical.transitionId);
+    expect(serving.tx_id).toBe(canonical.txId);
+    expect(serving.program_id).toBe(canonical.programId);
+    expect(serving.function_name).toBe(canonical.functionName);
+    expect(serving.tpk).toBe(canonical.tpk);
+    expect(serving.tcm).toBe(canonical.tcm);
   });
 });
+
+// ─── normalizeFee ────────────────────────────────────────────────
 
 describe("normalizeFee", () => {
   const mockFee: ProvableFee = {
@@ -191,11 +311,22 @@ describe("normalizeFee", () => {
   };
 
   it("normalizes a valid fee", () => {
-    const result = normalizeFee("testnet", "at1tx", mockFee);
-    expect(result.version).toBe(1);
-    expect(result.payer).toBe("aleo1q6qstg");
-    expect(result.amount).toBe(100000);
-    expect(result.globalStateRoot).toBe("sr1abc");
+    const { canonical, serving } = normalizeFee("testnet", "at1tx", mockFee);
+    expect(canonical.version).toBe(1);
+    expect(canonical.payer).toBe("aleo1q6qstg");
+    expect(canonical.amount).toBe(100000);
+    expect(canonical.globalStateRoot).toBe("sr1abc");
+  });
+
+  it("produces correct serving model", () => {
+    const { serving } = normalizeFee("testnet", "at1tx", mockFee);
+    expect(serving.tx_id).toBe("at1tx");
+    expect(serving.transition_id).toBe("au1fee");
+    expect(serving.payer).toBe("aleo1q6qstg");
+    expect(serving.amount).toBe(100000);
+    expect(serving.global_state_root).toBe("sr1abc");
+    expect(serving.network).toBe("testnet");
+    expect(serving.created_at).toBeDefined();
   });
 
   it("parses u64 amount format", () => {
@@ -209,8 +340,9 @@ describe("normalizeFee", () => {
         ],
       },
     };
-    const result = normalizeFee("testnet", "at1tx", fee);
-    expect(result.amount).toBe(250000);
+    const { canonical, serving } = normalizeFee("testnet", "at1tx", fee);
+    expect(canonical.amount).toBe(250000);
+    expect(serving.amount).toBe(250000);
   });
 
   it("defaults to 0 for non-u64 amount format", () => {
@@ -224,8 +356,9 @@ describe("normalizeFee", () => {
         ],
       },
     };
-    const result = normalizeFee("testnet", "at1tx", fee);
-    expect(result.amount).toBe(0);
+    const { canonical, serving } = normalizeFee("testnet", "at1tx", fee);
+    expect(canonical.amount).toBe(0);
+    expect(serving.amount).toBe(0);
   });
 
   it("defaults payer and amount for empty inputs", () => {
@@ -236,11 +369,25 @@ describe("normalizeFee", () => {
         inputs: [],
       },
     };
-    const result = normalizeFee("testnet", "at1tx", fee);
-    expect(result.payer).toBe("");
-    expect(result.amount).toBe(0);
+    const { canonical, serving } = normalizeFee("testnet", "at1tx", fee);
+    expect(canonical.payer).toBe("");
+    expect(canonical.amount).toBe(0);
+    expect(serving.payer).toBe("");
+    expect(serving.amount).toBe(0);
+  });
+
+  it("serving mirrors canonical data", () => {
+    const { canonical, serving } = normalizeFee("mainnet", "at1tx", mockFee);
+    expect(serving.tx_id).toBe(canonical.txId);
+    expect(serving.transition_id).toBe(canonical.transitionId);
+    expect(serving.payer).toBe(canonical.payer);
+    expect(serving.amount).toBe(canonical.amount);
+    expect(serving.global_state_root).toBe(canonical.globalStateRoot);
+    expect(serving.network).toBe(canonical.network);
   });
 });
+
+// ─── normalizeDeployment ─────────────────────────────────────────
 
 describe("normalizeDeployment", () => {
   it("normalizes a valid deployment", () => {
@@ -254,8 +401,27 @@ describe("normalizeDeployment", () => {
     };
     const result = normalizeDeployment("testnet", "at1deploy", "2024-06-03T12:00:00Z", body);
     expect(result).not.toBeNull();
-    expect(result?.programId).toBe("my_program.aleo");
-    expect(result?.edition).toBe(0);
+    expect(result?.canonical.programId).toBe("my_program.aleo");
+    expect(result?.canonical.edition).toBe(0);
+  });
+
+  it("produces correct serving model", () => {
+    const body: ProvableTransactionBody = {
+      type: "deploy",
+      id: "at1deploy",
+      deploy: {
+        program_id: "my_program.aleo",
+        edition: 2,
+      },
+    };
+    const result = normalizeDeployment("testnet", "at1deploy", "2024-06-03T12:00:00Z", body);
+    expect(result).not.toBeNull();
+    expect(result?.serving.program_id).toBe("my_program.aleo");
+    expect(result?.serving.edition).toBe(2);
+    expect(result?.serving.network).toBe("testnet");
+    expect(result?.serving.deployment_tx_id).toBe("at1deploy");
+    expect(result?.serving.deployed_at).toBe("2024-06-03T12:00:00Z");
+    expect(result?.serving.created_at).toBeDefined();
   });
 
   it("returns null for non-deploy type", () => {
@@ -285,7 +451,36 @@ describe("normalizeDeployment", () => {
     const result = normalizeDeployment("testnet", "at1deploy", "2024-06-03T12:00:00Z", body);
     expect(result).toBeNull();
   });
+
+  it("returns null for deploy with missing edition", () => {
+    const body: ProvableTransactionBody = {
+      type: "deploy",
+      id: "at1deploy",
+      deploy: { program_id: "my_program.aleo" },
+    };
+    const result = normalizeDeployment("testnet", "at1deploy", "2024-06-03T12:00:00Z", body);
+    expect(result).toBeNull();
+  });
+
+  it("serving mirrors canonical data", () => {
+    const body: ProvableTransactionBody = {
+      type: "deploy",
+      id: "at1deploy",
+      deploy: {
+        program_id: "my_program.aleo",
+        edition: 3,
+      },
+    };
+    const result = normalizeDeployment("mainnet", "at1deploy", "2024-06-03T12:00:00Z", body);
+    expect(result).not.toBeNull();
+    expect(result?.serving.program_id).toBe(result?.canonical.programId);
+    expect(result?.serving.edition).toBe(result?.canonical.edition);
+    expect(result?.serving.network).toBe(result?.canonical.network);
+    expect(result?.serving.deployment_tx_id).toBe(result?.canonical.txId);
+  });
 });
+
+// ─── normalizeMappingChange ──────────────────────────────────────
 
 describe("normalizeMappingChange", () => {
   it("normalizes a set action", () => {
@@ -296,11 +491,37 @@ describe("normalizeMappingChange", () => {
       key_id: "key123",
       value_id: "val123",
     };
-    const result = normalizeMappingChange("testnet", "at1tx", "au1tr", "credits.aleo", action);
-    expect(result.version).toBe(1);
-    expect(result.action).toBe("set");
-    expect(result.mappingId).toBe("mapping123");
-    expect(result.indexInTransition).toBe(0);
+    const { canonical, serving } = normalizeMappingChange(
+      "testnet", "at1tx", "au1tr", "credits.aleo", action,
+    );
+    expect(canonical.version).toBe(1);
+    expect(canonical.action).toBe("set");
+    expect(canonical.mappingId).toBe("mapping123");
+    expect(canonical.indexInTransition).toBe(0);
+  });
+
+  it("produces correct serving model", () => {
+    const action: ProvableFinalizeAction = {
+      type: "set",
+      mapping_id: "mapping123",
+      index: 0,
+      key_id: "key123",
+      value_id: "val123",
+    };
+    const { serving } = normalizeMappingChange(
+      "testnet", "at1tx", "au1tr", "credits.aleo", action,
+    );
+    expect(serving.tx_id).toBe("at1tx");
+    expect(serving.transition_id).toBe("au1tr");
+    expect(serving.program_id).toBe("credits.aleo");
+    expect(serving.mapping_id).toBe("mapping123");
+    expect(serving.action).toBe("set");
+    expect(serving.key_id).toBe("key123");
+    expect(serving.value_id).toBe("val123");
+    expect(serving.index_in_transition).toBe(0);
+    expect(serving.network).toBe("testnet");
+    expect(serving.id).toBe(1);
+    expect(serving.created_at).toBeDefined();
   });
 
   it("normalizes a remove action", () => {
@@ -311,8 +532,11 @@ describe("normalizeMappingChange", () => {
       key_id: "key123",
       value_id: "val123",
     };
-    const result = normalizeMappingChange("testnet", "at1tx", "au1tr", "credits.aleo", action);
-    expect(result.action).toBe("remove");
+    const { canonical, serving } = normalizeMappingChange(
+      "testnet", "at1tx", "au1tr", "credits.aleo", action,
+    );
+    expect(canonical.action).toBe("remove");
+    expect(serving.action).toBe("remove");
   });
 
   it("defaults unknown action type to remove", () => {
@@ -323,10 +547,37 @@ describe("normalizeMappingChange", () => {
       key_id: "key123",
       value_id: "val123",
     };
-    const result = normalizeMappingChange("testnet", "at1tx", "au1tr", "credits.aleo", action);
-    expect(result.action).toBe("remove");
+    const { canonical, serving } = normalizeMappingChange(
+      "testnet", "at1tx", "au1tr", "credits.aleo", action,
+    );
+    expect(canonical.action).toBe("remove");
+    expect(serving.action).toBe("remove");
+  });
+
+  it("serving mirrors canonical data", () => {
+    const action: ProvableFinalizeAction = {
+      type: "set",
+      mapping_id: "mapping456",
+      index: 3,
+      key_id: "key456",
+      value_id: "val456",
+    };
+    const { canonical, serving } = normalizeMappingChange(
+      "mainnet", "at1tx", "au1tr", "program.aleo", action,
+    );
+    expect(serving.tx_id).toBe(canonical.txId);
+    expect(serving.transition_id).toBe(canonical.transitionId);
+    expect(serving.program_id).toBe(canonical.programId);
+    expect(serving.mapping_id).toBe(canonical.mappingId);
+    expect(serving.action).toBe(canonical.action);
+    expect(serving.key_id).toBe(canonical.keyId);
+    expect(serving.value_id).toBe(canonical.valueId);
+    expect(serving.index_in_transition).toBe(canonical.indexInTransition);
+    expect(serving.network).toBe(canonical.network);
   });
 });
+
+// ─── NormalizationError ──────────────────────────────────────────
 
 describe("NormalizationError", () => {
   it("has correct name and properties", () => {
@@ -340,5 +591,10 @@ describe("NormalizationError", () => {
   it("is an instance of Error", () => {
     const error = new NormalizationError("tx", "test");
     expect(error).toBeInstanceOf(Error);
+  });
+
+  it("works without context", () => {
+    const error = new NormalizationError("fee", "bad data");
+    expect(error.context).toBeUndefined();
   });
 });
