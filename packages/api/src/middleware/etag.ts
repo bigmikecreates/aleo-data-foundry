@@ -1,26 +1,34 @@
 import { createHash } from "node:crypto";
 import type { FastifyRequest, FastifyReply } from "fastify";
 
-export function generateETag(body: unknown): string {
-  const content = JSON.stringify(body);
-  return createHash("sha256").update(content).digest("hex").slice(0, 16);
+/**
+ * Generate a truncated SHA-256 ETag from a string body.
+ */
+export function generateETag(body: string): string {
+  return createHash("sha256").update(body).digest("hex").slice(0, 16);
 }
 
-export async function etagHandler(
+/**
+ * Fastify onSend hook that sets ETag headers and handles If-None-Match (304).
+ */
+export async function etagOnSend(
   request: FastifyRequest,
   reply: FastifyReply,
-): Promise<void> {
+  payload: string,
+): Promise<string> {
+  const contentType = reply.getHeader("content-type");
+  if (!contentType || !String(contentType).includes("application/json")) {
+    return payload;
+  }
+
+  const etag = generateETag(payload);
+  reply.header("ETag", `"${etag}"`);
+
   const ifNoneMatch = request.headers["if-none-match"] as string | undefined;
+  if (ifNoneMatch && ifNoneMatch === `"${etag}"`) {
+    reply.code(304);
+    return "";
+  }
 
-  reply.raw.on("finish", () => {
-    const body = reply.raw.getHeader("x-etag-body");
-    if (body) {
-      const etag = generateETag(body);
-      reply.header("ETag", `"${etag}"`);
-
-      if (ifNoneMatch === `"${etag}"`) {
-        reply.status(304).send();
-      }
-    }
-  });
+  return payload;
 }
