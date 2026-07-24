@@ -20,6 +20,9 @@ importers:
 
   packages/api:
     dependencies:
+      '@aleo-foundry/db':
+        specifier: workspace:*
+        version: link:../db
       '@aleo-foundry/shared':
         specifier: workspace:*
         version: link:../shared

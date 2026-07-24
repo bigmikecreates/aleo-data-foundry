@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@aleo-foundry/db": "workspace:*",
     "@aleo-foundry/shared": "workspace:*",
     "fastify": "^5.10.0"
   },
