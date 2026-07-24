@@ -14,14 +14,24 @@ import type {
   CanonicalFee,
   CanonicalDeployment,
   CanonicalMappingChange,
+  BlockRow,
+  TransactionRow,
+  TransitionRow,
+  FeeRow,
+  ProgramRow,
+  MappingChangeRow,
 } from "@aleo-foundry/shared";
+
+export type TransformResult<T2, T3> = { canonical: T2; serving: T3 };
 
 export function normalizeBlock(
   network: Network,
   height: number,
   block: ProvableBlockResponse,
-): CanonicalBlock {
-  return {
+): TransformResult<CanonicalBlock, BlockRow> {
+  const now = new Date().toISOString();
+
+  const canonical: CanonicalBlock = {
     version: 1,
     network,
     height,
@@ -38,6 +48,26 @@ export function normalizeBlock(
     transactionsCount: block.transactions.length,
     abortedTransactionsCount: block.aborted_transaction_ids?.length ?? 0,
   };
+
+  const serving: BlockRow = {
+    height,
+    block_hash: block.block_hash,
+    previous_hash: block.previous_hash,
+    network,
+    timestamp: canonical.timestamp,
+    coinbase_target: block.header.metadata.coinbase_target,
+    proof_target: block.header.metadata.proof_target,
+    last_coinbase_target: block.header.metadata.last_coinbase_target,
+    last_coinbase_ratio: block.header.metadata.last_coinbase_ratio,
+    round: block.header.metadata.round,
+    transactions_root: block.header.transactions_root,
+    previous_state_root: block.header.previous_state_root,
+    transactions_count: canonical.transactionsCount,
+    aborted_transactions_count: canonical.abortedTransactionsCount,
+    created_at: now,
+  };
+
+  return { canonical, serving };
 }
 
 export function normalizeTransaction(
@@ -45,11 +75,12 @@ export function normalizeTransaction(
   height: number,
   blockHash: string,
   blockTx: ProvableBlockTransaction,
-): CanonicalTransaction {
+): TransformResult<CanonicalTransaction, TransactionRow> {
+  const now = new Date().toISOString();
   const txType = mapTransactionType(blockTx.transaction.type);
   const txStatus = mapTransactionStatus(blockTx.status);
 
-  return {
+  const canonical: CanonicalTransaction = {
     version: 1,
     network,
     blockHeight: height,
@@ -60,14 +91,30 @@ export function normalizeTransaction(
     status: txStatus,
     globalStateRoot: extractGlobalStateRoot(blockTx.transaction),
   };
+
+  const serving: TransactionRow = {
+    tx_id: blockTx.transaction.id,
+    block_height: height,
+    block_hash: blockHash,
+    network,
+    type: txType,
+    status: txStatus,
+    index_in_block: blockTx.index,
+    global_state_root: canonical.globalStateRoot,
+    created_at: now,
+  };
+
+  return { canonical, serving };
 }
 
 export function normalizeTransition(
   network: Network,
   txId: string,
   transition: ProvableTransition,
-): CanonicalTransition {
-  return {
+): TransformResult<CanonicalTransition, TransitionRow> {
+  const now = new Date().toISOString();
+
+  const canonical: CanonicalTransition = {
     version: 1,
     network,
     txId,
@@ -79,18 +126,33 @@ export function normalizeTransition(
     tpk: transition.tpk,
     tcm: transition.tcm,
   };
+
+  const serving: TransitionRow = {
+    transition_id: transition.id,
+    tx_id: txId,
+    program_id: transition.program,
+    function_name: transition.function,
+    inputs_json: JSON.stringify(transition.inputs),
+    outputs_json: JSON.stringify(transition.outputs),
+    tpk: transition.tpk,
+    tcm: transition.tcm,
+    created_at: now,
+  };
+
+  return { canonical, serving };
 }
 
 export function normalizeFee(
   network: Network,
   txId: string,
   fee: ProvableFee,
-): CanonicalFee {
+): TransformResult<CanonicalFee, FeeRow> {
+  const now = new Date().toISOString();
   const payer = fee.transition.inputs[0]?.value ?? "";
   const amountStr = fee.transition.inputs[1]?.value ?? "0";
   const amount = parseU64Amount(amountStr);
 
-  return {
+  const canonical: CanonicalFee = {
     version: 1,
     network,
     txId,
@@ -99,6 +161,18 @@ export function normalizeFee(
     amount,
     globalStateRoot: fee.global_state_root,
   };
+
+  const serving: FeeRow = {
+    tx_id: txId,
+    transition_id: fee.transition.id,
+    payer,
+    amount,
+    global_state_root: fee.global_state_root,
+    network,
+    created_at: now,
+  };
+
+  return { canonical, serving };
 }
 
 export function normalizeDeployment(
@@ -106,7 +180,7 @@ export function normalizeDeployment(
   txId: string,
   timestamp: string,
   body: ProvableTransactionBody,
-): CanonicalDeployment | null {
+): TransformResult<CanonicalDeployment, ProgramRow> | null {
   if (body.type !== "deploy") return null;
 
   const deploy = body.deploy as Record<string, unknown> | undefined;
@@ -116,7 +190,9 @@ export function normalizeDeployment(
   const edition = deploy.edition as number | undefined;
   if (!programId || edition === undefined) return null;
 
-  return {
+  const now = new Date().toISOString();
+
+  const canonical: CanonicalDeployment = {
     version: 1,
     network,
     txId,
@@ -124,6 +200,17 @@ export function normalizeDeployment(
     edition,
     timestamp,
   };
+
+  const serving: ProgramRow = {
+    program_id: programId,
+    network,
+    edition,
+    deployment_tx_id: txId,
+    deployed_at: timestamp,
+    created_at: now,
+  };
+
+  return { canonical, serving };
 }
 
 export function normalizeMappingChange(
@@ -132,8 +219,10 @@ export function normalizeMappingChange(
   transitionId: string,
   programId: string,
   action: ProvableFinalizeAction,
-): CanonicalMappingChange {
-  return {
+): TransformResult<CanonicalMappingChange, MappingChangeRow> {
+  const now = new Date().toISOString();
+
+  const canonical: CanonicalMappingChange = {
     version: 1,
     network,
     txId,
@@ -146,6 +235,23 @@ export function normalizeMappingChange(
     valueId: action.value_id,
     indexInTransition: action.index,
   };
+
+  const serving: MappingChangeRow = {
+    id: 1,
+    tx_id: txId,
+    transition_id: transitionId,
+    program_id: programId,
+    mapping_name: "",
+    mapping_id: action.mapping_id,
+    action: canonical.action,
+    key_id: action.key_id,
+    value_id: action.value_id,
+    index_in_transition: action.index,
+    network,
+    created_at: now,
+  };
+
+  return { canonical, serving };
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────
