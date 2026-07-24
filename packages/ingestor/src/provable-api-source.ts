@@ -86,7 +86,8 @@ export class ProvableApiSource implements ChainSource {
       } catch (error) {
         lastError = error as Error;
 
-        if (error instanceof ApiError && error.status < 500) {
+        // 4xx (except 429) are non-retryable
+        if (error instanceof ApiError && error.status >= 400 && error.status < 500 && error.status !== 429) {
           throw error;
         }
 

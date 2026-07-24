@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { ProvableApiSource } from "./provable-api-source.js";
 import { ApiError } from "./errors.js";
 import type { NetworkConfig } from "@aleo-foundry/shared";
@@ -40,6 +40,12 @@ describe("ProvableApiSource", () => {
     vi.restoreAllMocks();
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  // ─── getLatestHeight ────────────────────────────────────────
+
   it("getLatestHeight returns a number", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true,
@@ -50,6 +56,23 @@ describe("ProvableApiSource", () => {
     const height = await source.getLatestHeight();
     expect(height).toBe(12345);
   });
+
+  it("getLatestHeight calls correct URL", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve("42"),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const source = new ProvableApiSource(mockConfig);
+    await source.getLatestHeight();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.provable.com/v2/testnet/height",
+    );
+  });
+
+  // ─── getBlock ───────────────────────────────────────────────
 
   it("getBlock returns a parsed block", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
@@ -62,6 +85,204 @@ describe("ProvableApiSource", () => {
     expect(block.block_hash).toBe(mockBlock.block_hash);
   });
 
+  it("getBlock accepts string height (hash lookup)", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockBlock),
+    }));
+
+    const source = new ProvableApiSource(mockConfig);
+    const block = await source.getBlock("some_hash");
+    expect(block.block_hash).toBe(mockBlock.block_hash);
+  });
+
+  it("getBlock calls correct URL with height", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockBlock),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const source = new ProvableApiSource(mockConfig);
+    await source.getBlock(999);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.provable.com/v2/testnet/block/999",
+    );
+  });
+
+  // ─── getBlockTransactions ───────────────────────────────────
+
+  it("getBlockTransactions returns parsed transactions", async () => {
+    const txResponse = {
+      type: "execute",
+      id: "tx123",
+      execution: {
+        transitions: [{
+          id: "tr123",
+          program: "credits.aleo",
+          function: "transfer_private",
+          inputs: [{ type: "private", id: "in1", value: "100u64" }],
+          outputs: [{ type: "private", id: "out1", value: "100u64" }],
+          tpk: "tpk123",
+          tcm: "tcm123",
+        }],
+        global_state_root: "gsr123",
+        proof: "proof123",
+      },
+    };
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ transactions: [txResponse] }),
+    }));
+
+    const source = new ProvableApiSource(mockConfig);
+    const txs = await source.getBlockTransactions(12345);
+
+    expect(txs).toHaveLength(1);
+    expect(txs[0].id).toBe("tx123");
+  });
+
+  it("getBlockTransactions handles empty transactions", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ transactions: [] }),
+    }));
+
+    const source = new ProvableApiSource(mockConfig);
+    const txs = await source.getBlockTransactions(12345);
+
+    expect(txs).toHaveLength(0);
+  });
+
+  it("getBlockTransactions handles multiple transactions", async () => {
+    const tx1 = { type: "execute", id: "tx1" };
+    const tx2 = { type: "deploy", id: "tx2", deploy: {} };
+    const tx3 = { type: "execute", id: "tx3" };
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ transactions: [tx1, tx2, tx3] }),
+    }));
+
+    const source = new ProvableApiSource(mockConfig);
+    const txs = await source.getBlockTransactions(12345);
+
+    expect(txs).toHaveLength(3);
+    expect(txs[0].id).toBe("tx1");
+    expect(txs[1].id).toBe("tx2");
+    expect(txs[2].id).toBe("tx3");
+  });
+
+  it("getBlockTransactions throws on invalid transaction", async () => {
+    const invalidTx = { invalid: true };
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ transactions: [invalidTx] }),
+    }));
+
+    const source = new ProvableApiSource(mockConfig);
+    await expect(source.getBlockTransactions(12345)).rejects.toThrow(ApiError);
+  });
+
+  it("getBlockTransactions calls correct URL", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ transactions: [] }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const source = new ProvableApiSource(mockConfig);
+    await source.getBlockTransactions(42);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.provable.com/v2/testnet/block/42/transactions",
+    );
+  });
+
+  // ─── getTransaction ─────────────────────────────────────────
+
+  it("getTransaction returns parsed transaction", async () => {
+    const tx = {
+      type: "execute",
+      id: "tx456",
+      execution: {
+        transitions: [],
+        global_state_root: "gsr",
+        proof: "proof",
+      },
+    };
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(tx),
+    }));
+
+    const source = new ProvableApiSource(mockConfig);
+    const result = await source.getTransaction("tx456");
+
+    expect(result.id).toBe("tx456");
+  });
+
+  it("getTransaction calls correct URL", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ type: "execute", id: "abc" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const source = new ProvableApiSource(mockConfig);
+    await source.getTransaction("abc");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.provable.com/v2/testnet/transaction/abc",
+    );
+  });
+
+  it("getTransaction throws on invalid response", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ missing: "fields" }),
+    }));
+
+    const source = new ProvableApiSource(mockConfig);
+    await expect(source.getTransaction("bad")).rejects.toThrow(ApiError);
+  });
+
+  // ─── getProgram ─────────────────────────────────────────────
+
+  it("getProgram returns raw data", async () => {
+    const programData = { id: "credits.aleo" };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(programData),
+    }));
+
+    const source = new ProvableApiSource(mockConfig);
+    const result = await source.getProgram("credits.aleo");
+
+    expect(result).toEqual(programData);
+  });
+
+  it("getProgram calls correct URL", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({}),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const source = new ProvableApiSource(mockConfig);
+    await source.getProgram("token.aleo");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.provable.com/v2/testnet/program/token.aleo",
+    );
+  });
+
+  // ─── Error handling ─────────────────────────────────────────
+
   it("throws ApiError on 4xx", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: false,
@@ -70,6 +291,22 @@ describe("ProvableApiSource", () => {
 
     const source = new ProvableApiSource(mockConfig);
     await expect(source.getBlock(999)).rejects.toThrow(ApiError);
+  });
+
+  it("throws ApiError with correct status code", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+    }));
+
+    const source = new ProvableApiSource(mockConfig);
+    try {
+      await source.getBlock(999);
+      expect.fail("Should have thrown");
+    } catch (error) {
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).status).toBe(404);
+    }
   });
 
   it("retries on 5xx", async () => {
@@ -89,5 +326,103 @@ describe("ProvableApiSource", () => {
     const height = await source.getLatestHeight();
     expect(height).toBe(12345);
     expect(callCount).toBe(3);
+  }, 10000);
+
+  it("gives up after max retries on persistent 5xx", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: false,
+      status: 503,
+    }));
+
+    const source = new ProvableApiSource(mockConfig);
+    await expect(source.getBlock(1)).rejects.toThrow(ApiError);
+  }, 10000);
+
+  it("does not retry on 400-level errors", async () => {
+    let callCount = 0;
+    vi.stubGlobal("fetch", vi.fn().mockImplementation(() => {
+      callCount++;
+      return Promise.resolve({ ok: false, status: 422 });
+    }));
+
+    const source = new ProvableApiSource(mockConfig);
+    await expect(source.getBlock(1)).rejects.toThrow(ApiError);
+    expect(callCount).toBe(1);
+  });
+
+  it("retries on network errors", async () => {
+    let callCount = 0;
+    vi.stubGlobal("fetch", vi.fn().mockImplementation(() => {
+      callCount++;
+      if (callCount < 2) {
+        return Promise.reject(new Error("Network error"));
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve("999"),
+      });
+    }));
+
+    const source = new ProvableApiSource(mockConfig);
+    const height = await source.getLatestHeight();
+    expect(height).toBe(999);
+    expect(callCount).toBe(2);
+  }, 10000);
+
+  it("retries on 429 rate limit errors", async () => {
+    let callCount = 0;
+    vi.stubGlobal("fetch", vi.fn().mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) {
+        return Promise.resolve({ ok: false, status: 429 });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve("500"),
+      });
+    }));
+
+    const source = new ProvableApiSource(mockConfig);
+    const height = await source.getLatestHeight();
+
+    expect(height).toBe(500);
+    expect(callCount).toBe(2);
+  }, 10000);
+
+  it("retries multiple times on persistent 429 then gives up", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: false,
+      status: 429,
+    }));
+
+    const source = new ProvableApiSource(mockConfig);
+    await expect(source.getLatestHeight()).rejects.toThrow(ApiError);
+  }, 10000);
+
+  // ─── Mainnet config ─────────────────────────────────────────
+
+  it("works with mainnet config", async () => {
+    const mainnetConfig: NetworkConfig = {
+      network: "mainnet",
+      apiBaseUrl: "https://api.provable.com/v2/mainnet",
+      rateLimit: {
+        requestsPerSecond: 5,
+        requestsPerDay: 100_000,
+      },
+    };
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve("50000"),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const source = new ProvableApiSource(mainnetConfig);
+    const height = await source.getLatestHeight();
+
+    expect(height).toBe(50000);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.provable.com/v2/mainnet/height",
+    );
   });
 });
