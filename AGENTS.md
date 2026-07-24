@@ -50,13 +50,22 @@ After all tasks are complete and tests pass, perform a consistency review:
 
 ## Manual Review Checklist
 
-Present to user at sprint end with step-by-step instructions:
+Present to user at sprint end with step-by-step instructions. Each component must have:
+- **Specific file paths** to review
+- **Line numbers** for key logic
+- **Concrete verification steps** (not just "review X")
+- **What "correct" looks like** for each component
+
+### Template
+
+```markdown
+## Sprint N Review Checklist — Manual Review Instructions
 
 ### Step 1: Verify Tests Pass
 ```bash
 pnpm test
 ```
-Expected: All tests pass
+Expected: X tests pass across Y test files
 
 ### Step 2: Verify TypeScript Compilation
 ```bash
@@ -64,25 +73,34 @@ pnpm lint
 ```
 Expected: No errors
 
-### Step 3: Review Schema Consistency
-- [ ] All Tier 1 (source) schemas have corresponding type exports
-- [ ] All Tier 2 (canonical) schemas have consistent field naming
-- [ ] All Tier 3 (serving) schemas match canonical field names (snake_case)
-- [ ] No duplicate field names across schema tiers
+### Step 3: Review [Component Name]
+**File:** `packages/X/src/Y.ts`
 
-### Step 4: Review Test Coverage
-- [ ] Each schema has at least one positive test
-- [ ] Each schema has at least one negative test (where applicable)
-- [ ] New schemas have corresponding tests
+Open the file and verify:
+- [ ] Line 15-20: Function `foo` accepts `Bar` type and returns `Baz`
+- [ ] Line 45: Error handling catches `Qux` and throws `Error`
+- [ ] Line 67-80: Transformation maps `input.fieldA` → `output.fieldB`
 
-### Step 5: Review Barrel Exports
-- [ ] `packages/shared/src/index.ts` exports all public APIs
-- [ ] No internal implementation details leaked
+**Test coverage:** `packages/X/src/Y.test.ts`
+- [ ] Test 1: Positive case — valid input produces expected output
+- [ ] Test 2: Negative case — invalid input throws/rejects
+- [ ] Test 3: Edge case — empty/null input handled gracefully
 
-### Step 6: Review Config
-- [ ] `tsconfig.json` files are consistent
-- [ ] `package.json` files have correct dependencies
-- [ ] No redundant dependencies
+### Step 4: Review [Next Component]
+...
+
+### What Was Fixed
+| # | Fix | Files Changed |
+|---|---|---|
+| 1 | Description | file.ts:line |
+```
+
+### Rules
+1. **Line numbers are mandatory** — point to exact code locations
+2. **Field mappings must be explicit** — "input.X → output.Y" not just "maps fields"
+3. **Test cases must be named** — "Positive case: X" not just "has tests"
+4. **Edge cases must be listed** — empty input, null, invalid data
+5. **"What Was Fixed" must include file:line** — not just file names
 
 ## Code Quality
 
