@@ -14,8 +14,8 @@ function createTransitionInsert(overrides?: Partial<TransitionInsert>): Transiti
     tx_id: 'tx123abc',
     program_id: 'aleo.aleo',
     function_name: 'transfer_public',
-    inputs_json: [{ type: 'public', value: '100u64' }],
-    outputs_json: [{ type: 'public', value: '100u64' }],
+    inputs_json: '[{"type":"public","value":"100u64"}]',
+    outputs_json: '[{"type":"public","value":"100u64"}]',
     tpk: 'tpk123',
     tcm: 'tcm456',
     ...overrides,
@@ -49,8 +49,8 @@ describe('TransitionRepository', () => {
           transition.tx_id,
           transition.program_id,
           transition.function_name,
-          JSON.stringify(transition.inputs_json),
-          JSON.stringify(transition.outputs_json),
+          transition.inputs_json,
+          transition.outputs_json,
           transition.tpk,
           transition.tcm,
         ]
@@ -74,7 +74,7 @@ describe('TransitionRepository', () => {
       );
     });
 
-    it('Positive case: serializes JSON fields', async () => {
+    it('Positive case: passes JSON fields as-is', async () => {
       const mockClient = createMockClient();
       const repo = new TransitionRepository(mockClient);
       const transition = createTransitionInsert();
@@ -85,8 +85,8 @@ describe('TransitionRepository', () => {
       await repo.insert(transition);
 
       const params = vi.mocked(mockClient.query).mock.calls[0][1] as unknown[];
-      expect(params[4]).toBe(JSON.stringify(transition.inputs_json));
-      expect(params[5]).toBe(JSON.stringify(transition.outputs_json));
+      expect(params[4]).toBe(transition.inputs_json);
+      expect(params[5]).toBe(transition.outputs_json);
     });
   });
 

@@ -229,7 +229,7 @@ export function normalizeMappingChange(
     transitionId,
     programId,
     mappingId: action.mapping_id,
-    mappingName: "",
+    mappingName: action.mapping_id.split("/")[1] ?? "",
     action: action.type === "set" ? "set" : "remove",
     keyId: action.key_id,
     valueId: action.value_id,
@@ -237,11 +237,10 @@ export function normalizeMappingChange(
   };
 
   const serving: MappingChangeRow = {
-    id: 1,
     tx_id: txId,
     transition_id: transitionId,
     program_id: programId,
-    mapping_name: "",
+    mapping_name: canonical.mappingName,
     mapping_id: action.mapping_id,
     action: canonical.action,
     key_id: action.key_id,

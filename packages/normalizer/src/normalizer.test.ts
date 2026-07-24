@@ -520,7 +520,6 @@ describe("normalizeMappingChange", () => {
     expect(serving.value_id).toBe("val123");
     expect(serving.index_in_transition).toBe(0);
     expect(serving.network).toBe("testnet");
-    expect(serving.id).toBe(1);
     expect(serving.created_at).toBeDefined();
   });
 

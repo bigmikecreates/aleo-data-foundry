@@ -67,7 +67,7 @@ export type ProgramRow = z.infer<typeof ProgramRowSchema>;
 // ─── Mapping Change Row ──────────────────────────────────────────
 
 export const MappingChangeRowSchema = z.object({
-  id: z.number().int().positive(),
+  id: z.number().int().positive().optional(),
   tx_id: z.string(),
   transition_id: z.string(),
   program_id: z.string(),

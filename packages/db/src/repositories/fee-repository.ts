@@ -28,6 +28,12 @@ export class FeeRepository {
       `INSERT INTO fees (
         tx_id, transition_id, payer, amount, global_state_root, network
       ) VALUES ($1, $2, $3, $4, $5, $6)
+      ON CONFLICT (tx_id) DO UPDATE SET
+        transition_id = EXCLUDED.transition_id,
+        payer = EXCLUDED.payer,
+        amount = EXCLUDED.amount,
+        global_state_root = EXCLUDED.global_state_root,
+        network = EXCLUDED.network
       RETURNING *`,
       [
         fee.tx_id,

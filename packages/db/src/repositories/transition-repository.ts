@@ -17,8 +17,8 @@ export interface TransitionInsert {
   tx_id: string;
   program_id: string;
   function_name: string;
-  inputs_json: unknown;
-  outputs_json: unknown;
+  inputs_json: string;
+  outputs_json: string;
   tpk: string;
   tcm: string;
 }
@@ -46,8 +46,8 @@ export class TransitionRepository {
         transition.tx_id,
         transition.program_id,
         transition.function_name,
-        JSON.stringify(transition.inputs_json),
-        JSON.stringify(transition.outputs_json),
+        transition.inputs_json,
+        transition.outputs_json,
         transition.tpk,
         transition.tcm,
       ]

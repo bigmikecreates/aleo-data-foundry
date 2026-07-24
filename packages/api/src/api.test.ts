@@ -350,9 +350,9 @@ describe("Health", () => {
 
     expect(response.statusCode).toBe(200);
     const body = JSON.parse(response.payload);
-    expect(body.status).toBe("ok");
-    expect(body.timestamp).toBeDefined();
-    expect(typeof body.timestamp).toBe("string");
+    expect(body.data.status).toBe("ok");
+    expect(body.data.timestamp).toBeDefined();
+    expect(typeof body.data.timestamp).toBe("string");
   });
 });
 

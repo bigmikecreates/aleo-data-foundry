@@ -37,6 +37,14 @@ export class MappingChangeRepository {
         tx_id, transition_id, program_id, mapping_name, mapping_id,
         action, key_id, value_id, index_in_transition, network
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      ON CONFLICT (tx_id, transition_id, index_in_transition) DO UPDATE SET
+        program_id = EXCLUDED.program_id,
+        mapping_name = EXCLUDED.mapping_name,
+        mapping_id = EXCLUDED.mapping_id,
+        action = EXCLUDED.action,
+        key_id = EXCLUDED.key_id,
+        value_id = EXCLUDED.value_id,
+        network = EXCLUDED.network
       RETURNING *`,
       [
         change.tx_id,

@@ -1,4 +1,5 @@
 import { mkdir } from "node:fs/promises";
+import { join } from "node:path";
 import { loadEnv, parseDatabaseUrl, TESTNET_CONFIG, MAINNET_CONFIG } from "@aleo-foundry/shared";
 import type { Network, ProvableFinalizeAction } from "@aleo-foundry/shared";
 import {
@@ -51,7 +52,7 @@ async function main() {
   // Ingestor
   const source = new ProvableApiSource(networkConfig);
   await mkdir(env.CHECKPOINT_DIR, { recursive: true });
-  const checkpointStore = new CheckpointStore(env.CHECKPOINT_DIR);
+  const checkpointStore = new CheckpointStore(join(env.CHECKPOINT_DIR, "checkpoint.json"));
 
   const poller = new Poller(source, checkpointStore, {
     network: env.NETWORK,
