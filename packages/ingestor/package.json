@@ -1,0 +1,18 @@
+{
+  "name": "@aleo-foundry/ingestor",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@aleo-foundry/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.0"
+  }
+}
