@@ -4,7 +4,7 @@ export interface BlockRow {
   height: number;
   block_hash: string;
   previous_hash: string;
-  network: string;
+  network: "testnet" | "mainnet";
   timestamp: string;
   coinbase_target: string;
   proof_target: string;
@@ -22,7 +22,7 @@ export interface BlockInsert {
   height: number;
   block_hash: string;
   previous_hash: string;
-  network: string;
+  network: "testnet" | "mainnet";
   timestamp: string;
   coinbase_target: string;
   proof_target: string;

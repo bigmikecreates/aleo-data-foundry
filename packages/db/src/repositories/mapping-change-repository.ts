@@ -11,7 +11,7 @@ export interface MappingChangeRow {
   key_id: string;
   value_id: string;
   index_in_transition: number;
-  network: string;
+  network: "testnet" | "mainnet";
   created_at: string;
 }
 
@@ -25,7 +25,7 @@ export interface MappingChangeInsert {
   key_id: string;
   value_id: string;
   index_in_transition: number;
-  network: string;
+  network: "testnet" | "mainnet";
 }
 
 export class MappingChangeRepository {

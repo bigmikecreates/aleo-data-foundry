@@ -85,6 +85,7 @@ export type MappingChangeRow = z.infer<typeof MappingChangeRowSchema>;
 // ─── Fee Row ─────────────────────────────────────────────────────
 
 export const FeeRowSchema = z.object({
+  id: z.number().int().positive().optional(),
   tx_id: z.string(),
   transition_id: z.string(),
   payer: z.string(),
@@ -105,14 +106,4 @@ export const ChainMetadataRowSchema = z.object({
 });
 export type ChainMetadataRow = z.infer<typeof ChainMetadataRowSchema>;
 
-// ─── Deploy Row ──────────────────────────────────────────────────
 
-export const DeployRowSchema = z.object({
-  tx_id: z.string(),
-  program_id: z.string(),
-  edition: z.number().int().nonnegative(),
-  network: NetworkSchema,
-  deployed_at: z.string().datetime(),
-  created_at: z.string().datetime(),
-});
-export type DeployRow = z.infer<typeof DeployRowSchema>;

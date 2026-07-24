@@ -4,7 +4,7 @@ export interface TransactionRow {
   tx_id: string;
   block_height: number;
   block_hash: string;
-  network: string;
+  network: "testnet" | "mainnet";
   type: string;
   status: string;
   index_in_block: number;
@@ -16,7 +16,7 @@ export interface TransactionInsert {
   tx_id: string;
   block_height: number;
   block_hash: string;
-  network: string;
+  network: "testnet" | "mainnet";
   type: string;
   status: string;
   index_in_block: number;

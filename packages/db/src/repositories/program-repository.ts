@@ -2,7 +2,7 @@ import type { DatabaseClient } from '../client.js';
 
 export interface ProgramRow {
   program_id: string;
-  network: string;
+  network: "testnet" | "mainnet";
   edition: number;
   deployment_tx_id: string;
   deployed_at: string;
@@ -11,7 +11,7 @@ export interface ProgramRow {
 
 export interface ProgramInsert {
   program_id: string;
-  network: string;
+  network: "testnet" | "mainnet";
   edition: number;
   deployment_tx_id: string;
   deployed_at: string;

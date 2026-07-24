@@ -7,7 +7,7 @@ export interface FeeRow {
   payer: string;
   amount: number;
   global_state_root: string;
-  network: string;
+  network: "testnet" | "mainnet";
   created_at: string;
 }
 
@@ -17,7 +17,7 @@ export interface FeeInsert {
   payer: string;
   amount: number;
   global_state_root: string;
-  network: string;
+  network: "testnet" | "mainnet";
 }
 
 export class FeeRepository {

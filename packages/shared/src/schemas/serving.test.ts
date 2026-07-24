@@ -7,7 +7,6 @@ import {
   MappingChangeRowSchema,
   FeeRowSchema,
   ChainMetadataRowSchema,
-  DeployRowSchema,
 } from "./serving.js";
 
 describe("BlockRowSchema", () => {
@@ -224,28 +223,4 @@ describe("ChainMetadataRowSchema", () => {
   });
 });
 
-describe("DeployRowSchema", () => {
-  it("parses a valid deploy row", () => {
-    const result = DeployRowSchema.safeParse({
-      tx_id: "at1deploy",
-      program_id: "my_program.aleo",
-      edition: 0,
-      network: "testnet",
-      deployed_at: "2024-06-03T12:00:00Z",
-      created_at: "2024-06-03T12:00:00Z",
-    });
-    expect(result.success).toBe(true);
-  });
 
-  it("rejects negative edition", () => {
-    const result = DeployRowSchema.safeParse({
-      tx_id: "at1deploy",
-      program_id: "my_program.aleo",
-      edition: -1,
-      network: "testnet",
-      deployed_at: "2024-06-03T12:00:00Z",
-      created_at: "2024-06-03T12:00:00Z",
-    });
-    expect(result.success).toBe(false);
-  });
-});
