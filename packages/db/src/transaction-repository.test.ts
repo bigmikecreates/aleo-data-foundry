@@ -11,7 +11,7 @@ function createMockClient() {
 function createTxInsert(overrides?: Partial<TransactionInsert>): TransactionInsert {
   return {
     tx_id: 'tx123abc',
-    block_height: 12345n,
+    block_height: 12345,
     block_hash: 'abc123def456',
     network: 'testnet',
     type: 'execute',
@@ -26,7 +26,7 @@ function createTxRow(overrides?: Partial<TransactionInsert>) {
   const insert = createTxInsert(overrides);
   return {
     ...insert,
-    created_at: new Date(),
+    created_at: new Date().toISOString(),
   };
 }
 

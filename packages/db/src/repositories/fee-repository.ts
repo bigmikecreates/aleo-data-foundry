@@ -1,21 +1,21 @@
 import type { DatabaseClient } from '../client.js';
 
 export interface FeeRow {
-  id: bigint;
+  id: number;
   tx_id: string;
   transition_id: string;
   payer: string;
-  amount: bigint;
+  amount: number;
   global_state_root: string;
   network: string;
-  created_at: Date;
+  created_at: string;
 }
 
 export interface FeeInsert {
   tx_id: string;
   transition_id: string;
   payer: string;
-  amount: bigint;
+  amount: number;
   global_state_root: string;
   network: string;
 }
@@ -49,7 +49,7 @@ export class FeeRepository {
     return result.rows;
   }
 
-  async findAll(limit: number = 100, cursor?: bigint): Promise<FeeRow[]> {
+  async findAll(limit: number = 100, cursor?: number): Promise<FeeRow[]> {
     if (cursor !== undefined) {
       const result = await this.client.query<FeeRow>(
         'SELECT * FROM fees WHERE id < $1 ORDER BY id DESC LIMIT $2',

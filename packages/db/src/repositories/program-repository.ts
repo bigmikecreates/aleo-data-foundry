@@ -5,8 +5,8 @@ export interface ProgramRow {
   network: string;
   edition: number;
   deployment_tx_id: string;
-  deployed_at: Date;
-  created_at: Date;
+  deployed_at: string;
+  created_at: string;
 }
 
 export interface ProgramInsert {
@@ -14,7 +14,7 @@ export interface ProgramInsert {
   network: string;
   edition: number;
   deployment_tx_id: string;
-  deployed_at: Date;
+  deployed_at: string;
 }
 
 export class ProgramRepository {

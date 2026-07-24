@@ -14,7 +14,7 @@ export function mappingChangeRoutes(
 
       const limit = parseLimit(rawLimit);
       const decodedCursor = rawCursor
-        ? BigInt(decodeCursor(rawCursor))
+        ? Number(decodeCursor(rawCursor))
         : undefined;
 
       const rows = await mappingChangeRepository.findAll(

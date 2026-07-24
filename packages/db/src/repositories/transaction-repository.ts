@@ -2,19 +2,19 @@ import type { DatabaseClient } from '../client.js';
 
 export interface TransactionRow {
   tx_id: string;
-  block_height: bigint;
+  block_height: number;
   block_hash: string;
   network: string;
   type: string;
   status: string;
   index_in_block: number;
   global_state_root: string;
-  created_at: Date;
+  created_at: string;
 }
 
 export interface TransactionInsert {
   tx_id: string;
-  block_height: bigint;
+  block_height: number;
   block_hash: string;
   network: string;
   type: string;

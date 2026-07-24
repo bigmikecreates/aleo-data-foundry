@@ -11,7 +11,7 @@ function createMockClient() {
 function createChainMetadataInsert(overrides?: Partial<ChainMetadataInsert>): ChainMetadataInsert {
   return {
     network: 'testnet',
-    latest_height: 12345n,
+    latest_height: 12345,
     latest_hash: 'abc123def456',
     ...overrides,
   };
@@ -21,7 +21,7 @@ function createChainMetadataRow(overrides?: Partial<ChainMetadataInsert>) {
   const insert = createChainMetadataInsert(overrides);
   return {
     ...insert,
-    updated_at: new Date(),
+    updated_at: new Date().toISOString(),
   };
 }
 

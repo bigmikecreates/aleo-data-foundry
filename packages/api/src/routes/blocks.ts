@@ -12,7 +12,7 @@ export function blockRoutes(blockRepository: BlockRepository) {
       };
 
       const limit = parseLimit(rawLimit);
-      const decodedCursor = rawCursor ? BigInt(decodeCursor(rawCursor)) : undefined;
+      const decodedCursor = rawCursor ? Number(decodeCursor(rawCursor)) : undefined;
 
       const rows = await blockRepository.findAll(limit + 1, decodedCursor);
       const hasMore = rows.length > limit;
@@ -30,7 +30,7 @@ export function blockRoutes(blockRepository: BlockRepository) {
 
     app.get("/blocks/:height", async (request, reply) => {
       const { height } = request.params as { height: string };
-      const block = await blockRepository.findByHeight(BigInt(height));
+      const block = await blockRepository.findByHeight(Number(height));
 
       if (!block) {
         throw new NotFoundError("Block", height);

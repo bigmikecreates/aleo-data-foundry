@@ -1,7 +1,7 @@
 import type { DatabaseClient } from '../client.js';
 
 export interface MappingChangeRow {
-  id: bigint;
+  id: number;
   tx_id: string;
   transition_id: string;
   program_id: string;
@@ -12,7 +12,7 @@ export interface MappingChangeRow {
   value_id: string;
   index_in_transition: number;
   network: string;
-  created_at: Date;
+  created_at: string;
 }
 
 export interface MappingChangeInsert {
@@ -54,7 +54,7 @@ export class MappingChangeRepository {
     return result.rows[0];
   }
 
-  async findAll(limit: number = 100, cursor?: bigint): Promise<MappingChangeRow[]> {
+  async findAll(limit: number = 100, cursor?: number): Promise<MappingChangeRow[]> {
     if (cursor !== undefined) {
       const result = await this.client.query<MappingChangeRow>(
         'SELECT * FROM mapping_changes WHERE id < $1 ORDER BY id DESC LIMIT $2',

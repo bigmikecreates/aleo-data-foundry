@@ -24,12 +24,12 @@ function createMappingChangeInsert(overrides?: Partial<MappingChangeInsert>): Ma
   };
 }
 
-function createMappingChangeRow(overrides?: Partial<MappingChangeInsert> & { id?: bigint }) {
+function createMappingChangeRow(overrides?: Partial<MappingChangeInsert> & { id?: number }) {
   const insert = createMappingChangeInsert(overrides);
   return {
-    id: 1n,
+    id: 1,
     ...insert,
-    created_at: new Date(),
+    created_at: new Date().toISOString(),
     ...('id' in (overrides ?? {}) ? { id: overrides?.id } : {}),
   };
 }
@@ -69,7 +69,7 @@ describe('MappingChangeRepository', () => {
     it('Positive case: returns mapping changes with limit', async () => {
       const mockClient = createMockClient();
       const repo = new MappingChangeRepository(mockClient);
-      const rows = [createMappingChangeRow(), createMappingChangeRow({ id: 2n })];
+      const rows = [createMappingChangeRow(), createMappingChangeRow({ id: 2 })];
 
       vi.mocked(mockClient.query).mockResolvedValue({ rows } as never);
 
@@ -85,15 +85,15 @@ describe('MappingChangeRepository', () => {
     it('Positive case: returns mapping changes with cursor', async () => {
       const mockClient = createMockClient();
       const repo = new MappingChangeRepository(mockClient);
-      const rows = [createMappingChangeRow({ id: 2n })];
+      const rows = [createMappingChangeRow({ id: 2 })];
 
       vi.mocked(mockClient.query).mockResolvedValue({ rows } as never);
 
-      const result = await repo.findAll(10, 5n);
+      const result = await repo.findAll(10, 5);
 
       expect(mockClient.query).toHaveBeenCalledWith(
         expect.stringContaining('WHERE id < $1'),
-        [5n, 10]
+        [5, 10]
       );
       expect(result).toHaveLength(1);
     });

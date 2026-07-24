@@ -9,7 +9,7 @@ export interface TransitionRow {
   outputs_json: unknown;
   tpk: string;
   tcm: string;
-  created_at: Date;
+  created_at: string;
 }
 
 export interface TransitionInsert {
