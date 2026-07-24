@@ -26,7 +26,7 @@ function createTransitionRow(overrides?: Partial<TransitionInsert>) {
   const insert = createTransitionInsert(overrides);
   return {
     ...insert,
-    created_at: new Date(),
+    created_at: new Date().toISOString(),
   };
 }
 

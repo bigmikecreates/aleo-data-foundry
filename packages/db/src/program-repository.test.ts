@@ -14,7 +14,7 @@ function createProgramInsert(overrides?: Partial<ProgramInsert>): ProgramInsert 
     network: 'testnet',
     edition: 0,
     deployment_tx_id: 'tx123abc',
-    deployed_at: new Date('2024-01-15T10:30:00Z'),
+    deployed_at: '2024-01-15T10:30:00.000Z',
     ...overrides,
   };
 }
@@ -23,7 +23,7 @@ function createProgramRow(overrides?: Partial<ProgramInsert>) {
   const insert = createProgramInsert(overrides);
   return {
     ...insert,
-    created_at: new Date(),
+    created_at: new Date().toISOString(),
   };
 }
 

@@ -19,11 +19,11 @@ import type {
 // ---------------------------------------------------------------------------
 
 const MOCK_BLOCK_3 = {
-  height: 3n,
+  height: 3,
   block_hash: "hash3",
   previous_hash: "hash2",
   network: "testnet",
-  timestamp: new Date("2024-06-03T14:00:00Z"),
+  timestamp: "2024-06-03T14:00:00.000Z",
   coinbase_target: "4294967295",
   proof_target: "4294967295",
   last_coinbase_target: "4294967295",
@@ -33,15 +33,15 @@ const MOCK_BLOCK_3 = {
   previous_state_root: "sr2",
   transactions_count: 2,
   aborted_transactions_count: 0,
-  created_at: new Date("2024-06-03T14:00:00Z"),
+  created_at: "2024-06-03T14:00:00.000Z",
 };
 
 const MOCK_BLOCK_2 = {
-  height: 2n,
+  height: 2,
   block_hash: "hash2",
   previous_hash: "hash1",
   network: "testnet",
-  timestamp: new Date("2024-06-03T13:00:00Z"),
+  timestamp: "2024-06-03T13:00:00.000Z",
   coinbase_target: "4294967295",
   proof_target: "4294967295",
   last_coinbase_target: "4294967295",
@@ -51,15 +51,15 @@ const MOCK_BLOCK_2 = {
   previous_state_root: "sr1",
   transactions_count: 1,
   aborted_transactions_count: 0,
-  created_at: new Date("2024-06-03T13:00:00Z"),
+  created_at: "2024-06-03T13:00:00.000Z",
 };
 
 const MOCK_BLOCK_1 = {
-  height: 1n,
+  height: 1,
   block_hash: "hash1",
   previous_hash: "hash0",
   network: "testnet",
-  timestamp: new Date("2024-06-03T12:00:00Z"),
+  timestamp: "2024-06-03T12:00:00.000Z",
   coinbase_target: "4294967295",
   proof_target: "4294967295",
   last_coinbase_target: "4294967295",
@@ -69,21 +69,21 @@ const MOCK_BLOCK_1 = {
   previous_state_root: "sr0",
   transactions_count: 1,
   aborted_transactions_count: 0,
-  created_at: new Date("2024-06-03T12:00:00Z"),
+  created_at: "2024-06-03T12:00:00.000Z",
 };
 
 const MOCK_BLOCKS = [MOCK_BLOCK_3, MOCK_BLOCK_2, MOCK_BLOCK_1];
 
 const MOCK_TX = {
   tx_id: "at1tx",
-  block_height: 12345n,
+  block_height: 12345,
   block_hash: "ab17upp",
   network: "testnet",
   type: "execute",
   status: "accepted",
   index_in_block: 0,
   global_state_root: "sr1abc",
-  created_at: new Date("2024-06-03T12:00:00Z"),
+  created_at: "2024-06-03T12:00:00.000Z",
 };
 
 const MOCK_TRANSITION = {
@@ -95,7 +95,7 @@ const MOCK_TRANSITION = {
   outputs_json: [] as unknown[],
   tpk: "tpk123",
   tcm: "tcm456",
-  created_at: new Date("2024-06-03T12:00:00Z"),
+  created_at: "2024-06-03T12:00:00.000Z",
 };
 
 const MOCK_PROGRAM = {
@@ -103,12 +103,12 @@ const MOCK_PROGRAM = {
   network: "testnet",
   edition: 0,
   deployment_tx_id: "at1deploy",
-  deployed_at: new Date("2024-06-03T12:00:00Z"),
-  created_at: new Date("2024-06-03T12:00:00Z"),
+  deployed_at: "2024-06-03T12:00:00.000Z",
+  created_at: "2024-06-03T12:00:00.000Z",
 };
 
 const MOCK_MAPPING_CHANGE_3 = {
-  id: 3n,
+  id: 3,
   tx_id: "at1tx3",
   transition_id: "au1tr3",
   program_id: "credits.aleo",
@@ -119,11 +119,11 @@ const MOCK_MAPPING_CHANGE_3 = {
   value_id: "val3",
   index_in_transition: 0,
   network: "testnet",
-  created_at: new Date("2024-06-03T14:00:00Z"),
+  created_at: "2024-06-03T14:00:00.000Z",
 };
 
 const MOCK_MAPPING_CHANGE_2 = {
-  id: 2n,
+  id: 2,
   tx_id: "at1tx2",
   transition_id: "au1tr2",
   program_id: "credits.aleo",
@@ -134,11 +134,11 @@ const MOCK_MAPPING_CHANGE_2 = {
   value_id: "val2",
   index_in_transition: 0,
   network: "testnet",
-  created_at: new Date("2024-06-03T13:00:00Z"),
+  created_at: "2024-06-03T13:00:00.000Z",
 };
 
 const MOCK_MAPPING_CHANGE_1 = {
-  id: 1n,
+  id: 1,
   tx_id: "at1tx1",
   transition_id: "au1tr1",
   program_id: "credits.aleo",
@@ -149,7 +149,7 @@ const MOCK_MAPPING_CHANGE_1 = {
   value_id: "val1",
   index_in_transition: 0,
   network: "testnet",
-  created_at: new Date("2024-06-03T12:00:00Z"),
+  created_at: "2024-06-03T12:00:00.000Z",
 };
 
 const MOCK_MAPPING_CHANGES = [
@@ -159,45 +159,45 @@ const MOCK_MAPPING_CHANGES = [
 ];
 
 const MOCK_FEE_3 = {
-  id: 3n,
+  id: 3,
   tx_id: "at1tx3",
   transition_id: "au1tr3",
   payer: "aleo1payer3",
-  amount: 100000n,
+  amount: 100000,
   global_state_root: "sr3",
   network: "testnet",
-  created_at: new Date("2024-06-03T14:00:00Z"),
+  created_at: "2024-06-03T14:00:00.000Z",
 };
 
 const MOCK_FEE_2 = {
-  id: 2n,
+  id: 2,
   tx_id: "at1tx2",
   transition_id: "au1tr2",
   payer: "aleo1payer2",
-  amount: 50000n,
+  amount: 50000,
   global_state_root: "sr2",
   network: "testnet",
-  created_at: new Date("2024-06-03T13:00:00Z"),
+  created_at: "2024-06-03T13:00:00.000Z",
 };
 
 const MOCK_FEE_1 = {
-  id: 1n,
+  id: 1,
   tx_id: "at1tx1",
   transition_id: "au1tr1",
   payer: "aleo1payer1",
-  amount: 25000n,
+  amount: 25000,
   global_state_root: "sr1",
   network: "testnet",
-  created_at: new Date("2024-06-03T12:00:00Z"),
+  created_at: "2024-06-03T12:00:00.000Z",
 };
 
 const MOCK_FEES = [MOCK_FEE_3, MOCK_FEE_2, MOCK_FEE_1];
 
 const MOCK_CHAIN_METADATA = {
   network: "testnet",
-  latest_height: 12345n,
+  latest_height: 12345,
   latest_hash: "ab17upp",
-  updated_at: new Date("2024-06-03T12:00:00Z"),
+  updated_at: "2024-06-03T12:00:00.000Z",
 };
 
 // ---------------------------------------------------------------------------
@@ -209,10 +209,10 @@ function createMockBlockRepository(): BlockRepository {
     async insert() {
       throw new Error("Not implemented in tests");
     },
-    async findByHeight(height: bigint) {
+    async findByHeight(height: number) {
       return MOCK_BLOCKS.find((b) => b.height === height) ?? null;
     },
-    async findAll(limit: number, cursor?: bigint) {
+    async findAll(limit: number, cursor?: number) {
       let filtered = MOCK_BLOCKS;
       if (cursor !== undefined) {
         filtered = MOCK_BLOCKS.filter((b) => b.height < cursor);
@@ -272,7 +272,7 @@ function createMockMappingChangeRepository(): MappingChangeRepository {
     async insert() {
       throw new Error("Not implemented in tests");
     },
-    async findAll(limit: number, cursor?: bigint) {
+    async findAll(limit: number, cursor?: number) {
       let filtered = MOCK_MAPPING_CHANGES;
       if (cursor !== undefined) {
         filtered = MOCK_MAPPING_CHANGES.filter((c) => c.id < cursor);
@@ -290,7 +290,7 @@ function createMockFeeRepository(): FeeRepository {
     async findByTxId(_txId: string) {
       return [];
     },
-    async findAll(limit: number, cursor?: bigint) {
+    async findAll(limit: number, cursor?: number) {
       let filtered = MOCK_FEES;
       if (cursor !== undefined) {
         filtered = MOCK_FEES.filter((f) => f.id < cursor);
@@ -408,8 +408,8 @@ describe("Blocks", () => {
       const body1 = JSON.parse(page1.payload);
       expect(body1.data).toHaveLength(2);
       expect(body1.meta.hasMore).toBe(true);
-      expect(body1.data[0].height).toBe("3");
-      expect(body1.data[1].height).toBe("2");
+      expect(body1.data[0].height).toBe(3);
+      expect(body1.data[1].height).toBe(2);
 
       // Second page
       const page2 = await app.inject({
@@ -419,7 +419,7 @@ describe("Blocks", () => {
       const body2 = JSON.parse(page2.payload);
       expect(body2.data).toHaveLength(1);
       expect(body2.meta.hasMore).toBe(false);
-      expect(body2.data[0].height).toBe("1");
+      expect(body2.data[0].height).toBe(1);
     });
 
     it("clamps limit to maximum of 100", async () => {
@@ -446,7 +446,7 @@ describe("Blocks", () => {
       expect(body.data).toHaveLength(3);
     });
 
-    it("serializes bigint heights as strings", async () => {
+    it("serializes height as number", async () => {
       const response = await app.inject({
         method: "GET",
         url: "/blocks?limit=1",
@@ -454,8 +454,7 @@ describe("Blocks", () => {
 
       expect(response.statusCode).toBe(200);
       const body = JSON.parse(response.payload);
-      // BigInt should be serialized as string in JSON
-      expect(typeof body.data[0].height).toBe("string");
+      expect(typeof body.data[0].height).toBe("number");
     });
   });
 
@@ -469,7 +468,7 @@ describe("Blocks", () => {
       expect(response.statusCode).toBe(200);
       const body = JSON.parse(response.payload);
       expect(body.data).toBeDefined();
-      expect(body.data.height).toBe("2");
+      expect(body.data.height).toBe(2);
       expect(body.data.block_hash).toBe("hash2");
       expect(body.data.network).toBe("testnet");
     });
@@ -516,8 +515,8 @@ describe("Transactions", () => {
 
       expect(response.statusCode).toBe(200);
       const body = JSON.parse(response.payload);
-      expect(typeof body.data.block_height).toBe("string");
-      expect(body.data.block_height).toBe("12345");
+      expect(typeof body.data.block_height).toBe("number");
+      expect(body.data.block_height).toBe(12345);
     });
 
     it("returns 404 for unknown txId", async () => {
@@ -662,10 +661,10 @@ describe("Mapping Changes", () => {
       const body2 = JSON.parse(page2.payload);
       expect(body2.data).toHaveLength(1);
       expect(body2.meta.hasMore).toBe(false);
-      expect(body2.data[0].id).toBe("1");
+      expect(body2.data[0].id).toBe(1);
     });
 
-    it("serializes bigint id as string", async () => {
+    it("serializes id as number", async () => {
       const response = await app.inject({
         method: "GET",
         url: "/mapping-changes?limit=1",
@@ -673,7 +672,7 @@ describe("Mapping Changes", () => {
 
       expect(response.statusCode).toBe(200);
       const body = JSON.parse(response.payload);
-      expect(typeof body.data[0].id).toBe("string");
+      expect(typeof body.data[0].id).toBe("number");
     });
   });
 });
@@ -739,10 +738,10 @@ describe("Fees", () => {
       const body2 = JSON.parse(page2.payload);
       expect(body2.data).toHaveLength(1);
       expect(body2.meta.hasMore).toBe(false);
-      expect(body2.data[0].id).toBe("1");
+      expect(body2.data[0].id).toBe(1);
     });
 
-    it("serializes bigint id and amount as strings", async () => {
+    it("serializes id and amount as numbers", async () => {
       const response = await app.inject({
         method: "GET",
         url: "/fees?limit=1",
@@ -750,8 +749,8 @@ describe("Fees", () => {
 
       expect(response.statusCode).toBe(200);
       const body = JSON.parse(response.payload);
-      expect(typeof body.data[0].id).toBe("string");
-      expect(typeof body.data[0].amount).toBe("string");
+      expect(typeof body.data[0].id).toBe("number");
+      expect(typeof body.data[0].amount).toBe("number");
     });
   });
 });
@@ -770,7 +769,7 @@ describe("Chain Metadata", () => {
       const body = JSON.parse(response.payload);
       expect(body.data).toBeDefined();
       expect(body.data.network).toBe("testnet");
-      expect(body.data.latest_height).toBe("12345");
+      expect(body.data.latest_height).toBe(12345);
       expect(body.data.latest_hash).toBe("ab17upp");
     });
 

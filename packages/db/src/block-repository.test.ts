@@ -10,11 +10,11 @@ function createMockClient() {
 
 function createBlockInsert(overrides?: Partial<BlockInsert>): BlockInsert {
   return {
-    height: 12345n,
+    height: 12345,
     block_hash: 'abc123def456',
     previous_hash: '000000000000',
     network: 'testnet',
-    timestamp: new Date('2024-01-15T10:30:00Z'),
+    timestamp: '2024-01-15T10:30:00Z',
     coinbase_target: '1000000',
     proof_target: '1000000000',
     last_coinbase_target: '1000000',
@@ -32,7 +32,7 @@ function createBlockRow(overrides?: Partial<BlockInsert>) {
   const insert = createBlockInsert(overrides);
   return {
     ...insert,
-    created_at: new Date(),
+    created_at: new Date().toISOString(),
   };
 }
 
@@ -95,11 +95,11 @@ describe('BlockRepository', () => {
 
       vi.mocked(mockClient.query).mockResolvedValue({ rows: [row] } as never);
 
-      const result = await repo.findByHeight(12345n);
+      const result = await repo.findByHeight(12345);
 
       expect(mockClient.query).toHaveBeenCalledWith(
         'SELECT * FROM blocks WHERE height = $1',
-        [12345n]
+        [12345]
       );
       expect(result).toEqual(row);
     });
@@ -110,7 +110,7 @@ describe('BlockRepository', () => {
 
       vi.mocked(mockClient.query).mockResolvedValue({ rows: [] } as never);
 
-      const result = await repo.findByHeight(99999n);
+      const result = await repo.findByHeight(99999);
 
       expect(result).toBeNull();
     });
@@ -120,7 +120,7 @@ describe('BlockRepository', () => {
     it('Positive case: returns blocks with limit', async () => {
       const mockClient = createMockClient();
       const repo = new BlockRepository(mockClient);
-      const rows = [createBlockRow(), createBlockRow({ height: 12344n })];
+      const rows = [createBlockRow(), createBlockRow({ height: 12344 })];
 
       vi.mocked(mockClient.query).mockResolvedValue({ rows } as never);
 
@@ -136,15 +136,15 @@ describe('BlockRepository', () => {
     it('Positive case: returns blocks with cursor', async () => {
       const mockClient = createMockClient();
       const repo = new BlockRepository(mockClient);
-      const rows = [createBlockRow({ height: 12344n })];
+      const rows = [createBlockRow({ height: 12344 })];
 
       vi.mocked(mockClient.query).mockResolvedValue({ rows } as never);
 
-      const result = await repo.findAll(10, 12345n);
+      const result = await repo.findAll(10, 12345);
 
       expect(mockClient.query).toHaveBeenCalledWith(
         expect.stringContaining('WHERE height < $1'),
-        [12345n, 10]
+        [12345, 10]
       );
       expect(result).toHaveLength(1);
     });

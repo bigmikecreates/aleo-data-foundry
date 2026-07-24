@@ -1,11 +1,11 @@
 import type { DatabaseClient } from '../client.js';
 
 export interface BlockRow {
-  height: bigint;
+  height: number;
   block_hash: string;
   previous_hash: string;
   network: string;
-  timestamp: Date;
+  timestamp: string;
   coinbase_target: string;
   proof_target: string;
   last_coinbase_target: string;
@@ -15,15 +15,15 @@ export interface BlockRow {
   previous_state_root: string;
   transactions_count: number;
   aborted_transactions_count: number;
-  created_at: Date;
+  created_at: string;
 }
 
 export interface BlockInsert {
-  height: bigint;
+  height: number;
   block_hash: string;
   previous_hash: string;
   network: string;
-  timestamp: Date;
+  timestamp: string;
   coinbase_target: string;
   proof_target: string;
   last_coinbase_target: string;
@@ -81,7 +81,7 @@ export class BlockRepository {
     return result.rows[0];
   }
 
-  async findByHeight(height: bigint): Promise<BlockRow | null> {
+  async findByHeight(height: number): Promise<BlockRow | null> {
     const result = await this.client.query<BlockRow>(
       'SELECT * FROM blocks WHERE height = $1',
       [height]
@@ -89,7 +89,7 @@ export class BlockRepository {
     return result.rows[0] ?? null;
   }
 
-  async findAll(limit: number = 100, cursor?: bigint): Promise<BlockRow[]> {
+  async findAll(limit: number = 100, cursor?: number): Promise<BlockRow[]> {
     if (cursor !== undefined) {
       const result = await this.client.query<BlockRow>(
         'SELECT * FROM blocks WHERE height < $1 ORDER BY height DESC LIMIT $2',

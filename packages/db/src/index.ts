@@ -14,3 +14,4 @@ export { FeeRepository } from './repositories/fee-repository.js';
 export type { FeeRow, FeeInsert } from './repositories/fee-repository.js';
 export { ChainMetadataRepository } from './repositories/chain-metadata-repository.js';
 export type { ChainMetadataRow, ChainMetadataInsert } from './repositories/chain-metadata-repository.js';
+export { migrate } from './migrate.js';

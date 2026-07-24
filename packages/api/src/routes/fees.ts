@@ -12,7 +12,7 @@ export function feeRoutes(feeRepository: FeeRepository) {
 
       const limit = parseLimit(rawLimit);
       const decodedCursor = rawCursor
-        ? BigInt(decodeCursor(rawCursor))
+        ? Number(decodeCursor(rawCursor))
         : undefined;
 
       const rows = await feeRepository.findAll(limit + 1, decodedCursor);

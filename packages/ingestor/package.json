@@ -10,7 +10,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@aleo-foundry/shared": "workspace:*"
+    "@aleo-foundry/shared": "workspace:*",
+    "@aleo-foundry/db": "workspace:*",
+    "@aleo-foundry/normalizer": "workspace:*"
   },
   "devDependencies": {
     "vitest": "^3.2.0"

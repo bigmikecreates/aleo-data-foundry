@@ -13,19 +13,19 @@ function createFeeInsert(overrides?: Partial<FeeInsert>): FeeInsert {
     tx_id: 'tx123abc',
     transition_id: 'trans123abc',
     payer: 'aleo1abc123',
-    amount: 1000000n,
+    amount: 1000000,
     global_state_root: 'stateRoot123',
     network: 'testnet',
     ...overrides,
   };
 }
 
-function createFeeRow(overrides?: Partial<FeeInsert> & { id?: bigint }) {
+function createFeeRow(overrides?: Partial<FeeInsert> & { id?: number }) {
   const insert = createFeeInsert(overrides);
   return {
-    id: 1n,
+    id: 1,
     ...insert,
-    created_at: new Date(),
+    created_at: new Date().toISOString(),
     ...('id' in (overrides ?? {}) ? { id: overrides?.id } : {}),
   };
 }
@@ -61,7 +61,7 @@ describe('FeeRepository', () => {
     it('Positive case: finds fees by txId', async () => {
       const mockClient = createMockClient();
       const repo = new FeeRepository(mockClient);
-      const rows = [createFeeRow(), createFeeRow({ id: 2n })];
+      const rows = [createFeeRow(), createFeeRow({ id: 2 })];
 
       vi.mocked(mockClient.query).mockResolvedValue({ rows } as never);
 
@@ -90,7 +90,7 @@ describe('FeeRepository', () => {
     it('Positive case: returns fees with limit', async () => {
       const mockClient = createMockClient();
       const repo = new FeeRepository(mockClient);
-      const rows = [createFeeRow(), createFeeRow({ id: 2n })];
+      const rows = [createFeeRow(), createFeeRow({ id: 2 })];
 
       vi.mocked(mockClient.query).mockResolvedValue({ rows } as never);
 
@@ -106,15 +106,15 @@ describe('FeeRepository', () => {
     it('Positive case: returns fees with cursor', async () => {
       const mockClient = createMockClient();
       const repo = new FeeRepository(mockClient);
-      const rows = [createFeeRow({ id: 2n })];
+      const rows = [createFeeRow({ id: 2 })];
 
       vi.mocked(mockClient.query).mockResolvedValue({ rows } as never);
 
-      const result = await repo.findAll(10, 5n);
+      const result = await repo.findAll(10, 5);
 
       expect(mockClient.query).toHaveBeenCalledWith(
         expect.stringContaining('WHERE id < $1'),
-        [5n, 10]
+        [5, 10]
       );
       expect(result).toHaveLength(1);
     });

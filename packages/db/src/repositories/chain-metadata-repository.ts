@@ -2,14 +2,14 @@ import type { DatabaseClient } from '../client.js';
 
 export interface ChainMetadataRow {
   network: string;
-  latest_height: bigint;
+  latest_height: number;
   latest_hash: string;
-  updated_at: Date;
+  updated_at: string;
 }
 
 export interface ChainMetadataInsert {
   network: string;
-  latest_height: bigint;
+  latest_height: number;
   latest_hash: string;
 }
 
