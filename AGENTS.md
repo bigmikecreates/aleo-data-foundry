@@ -16,13 +16,16 @@
 ## Sprint Workflow
 
 Each sprint follows:
-1. Work from the sprint's GitHub Issue
-2. Follow SpecKit artifacts (spec.md, plan.md, tasks.md)
-3. Implement tasks in dependency order
-4. Run `/speckit.converge` to verify completeness
-5. Run `pnpm test` — debug and fix until green
-6. Run consistency review (see below)
-7. Present manual review checklist to user
+1. Create GitHub Issue with sprint checklist (`gh issue create`)
+2. Create sprint branch: `sprint/N-description`
+3. Follow SpecKit artifacts (spec.md, plan.md, tasks.md)
+4. Implement tasks in dependency order
+5. Run `/speckit.converge` to verify completeness
+6. Run `pnpm test` — debug and fix until green
+7. Run consistency review (see below)
+8. Present manual review checklist to user
+9. Commit, push, create PR with `Closes #N` to link issue
+10. Squash merge PR → main (issue auto-closes)
 
 ## Sprint-End Review
 
