@@ -15,3 +15,12 @@ export class ValidationError extends Error {
     this.name = "ValidationError";
   }
 }
+
+export class UnauthorizedError extends Error {
+  public readonly code = "UNAUTHORIZED";
+
+  constructor(message = "Unauthorized") {
+    super(message);
+    this.name = "UnauthorizedError";
+  }
+}

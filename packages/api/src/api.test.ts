@@ -944,3 +944,65 @@ describe("Utility functions", () => {
     });
   });
 });
+
+// ===== Auth =====
+
+describe("Auth", () => {
+  let authedApp: FastifyInstance;
+
+  beforeAll(async () => {
+    authedApp = await buildServer({
+      ...createAppContext(),
+      apiKeys: ["test-key-1", "test-key-2"],
+    });
+    await authedApp.ready();
+  });
+
+  afterAll(async () => {
+    await authedApp.close();
+  });
+
+  it("rejects data endpoints without credentials", async () => {
+    const response = await authedApp.inject({ method: "GET", url: "/blocks" });
+
+    expect(response.statusCode).toBe(401);
+    const body = JSON.parse(response.payload);
+    expect(body.error.code).toBe("UNAUTHORIZED");
+  });
+
+  it("rejects invalid API keys", async () => {
+    const response = await authedApp.inject({
+      method: "GET",
+      url: "/blocks",
+      headers: { authorization: "Bearer wrong-key" },
+    });
+
+    expect(response.statusCode).toBe(401);
+  });
+
+  it("rejects non-Bearer Authorization headers", async () => {
+    const response = await authedApp.inject({
+      method: "GET",
+      url: "/blocks",
+      headers: { authorization: "Basic dXNlcjpwYXNz" },
+    });
+
+    expect(response.statusCode).toBe(401);
+  });
+
+  it("accepts a valid Bearer API key", async () => {
+    const response = await authedApp.inject({
+      method: "GET",
+      url: "/blocks",
+      headers: { authorization: "Bearer test-key-2" },
+    });
+
+    expect(response.statusCode).toBe(200);
+  });
+
+  it("keeps /health public when auth is enabled", async () => {
+    const response = await authedApp.inject({ method: "GET", url: "/health" });
+
+    expect(response.statusCode).toBe(200);
+  });
+});

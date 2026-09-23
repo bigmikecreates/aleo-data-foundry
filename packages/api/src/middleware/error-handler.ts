@@ -1,6 +1,6 @@
 import type { FastifyError } from "fastify";
 import type { FastifyRequest, FastifyReply } from "fastify";
-import { NotFoundError, ValidationError } from "../errors.js";
+import { NotFoundError, ValidationError, UnauthorizedError } from "../errors.js";
 
 export function errorHandler(
   error: FastifyError,
@@ -16,6 +16,9 @@ export function errorHandler(
   } else if (error instanceof ValidationError) {
     statusCode = 400;
     code = "VALIDATION_ERROR";
+  } else if (error instanceof UnauthorizedError) {
+    statusCode = 401;
+    code = "UNAUTHORIZED";
   }
 
   reply.status(statusCode).send({

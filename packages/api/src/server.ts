@@ -10,6 +10,8 @@ import { programRoutes } from "./routes/programs.js";
 import { mappingChangeRoutes } from "./routes/mapping-changes.js";
 import { feeRoutes } from "./routes/fees.js";
 import { chainMetadataRoutes } from "./routes/chain-metadata.js";
+import { streamRoutes } from "./stream.js";
+import { createAuthGuard } from "./middleware/auth.js";
 import type {
   BlockRepository,
   TransactionRepository,
@@ -28,12 +30,14 @@ export interface AppContext {
   mappingChangeRepository: MappingChangeRepository;
   feeRepository: FeeRepository;
   chainMetadataRepository: ChainMetadataRepository;
+  apiKeys?: string[];
+  streamIntervalMs?: number;
 }
 
 /**
  * Recursively convert BigInt values to strings for JSON serialization.
  */
-function serializePayload(value: unknown): unknown {
+export function serializePayload(value: unknown): unknown {
   if (value === null || value === undefined) return value;
   if (typeof value === "bigint") return value.toString();
   if (Array.isArray(value)) return value.map(serializePayload);
@@ -59,7 +63,12 @@ export async function buildServer(ctx: AppContext): Promise<FastifyInstance> {
 
   app.addHook("onSend", etagOnSend);
 
+  // /health stays public; everything registered after the auth guard requires
+  // `Authorization: Bearer <api-key>` when apiKeys is non-empty.
   await app.register(healthRoutes);
+  if ((ctx.apiKeys ?? []).length > 0) {
+    app.addHook("preHandler", createAuthGuard(ctx.apiKeys ?? []));
+  }
   await app.register(blockRoutes(ctx.blockRepository));
   await app.register(transactionRoutes(ctx.transactionRepository));
   await app.register(transitionRoutes(ctx.transitionRepository));
@@ -67,6 +76,13 @@ export async function buildServer(ctx: AppContext): Promise<FastifyInstance> {
   await app.register(mappingChangeRoutes(ctx.mappingChangeRepository));
   await app.register(feeRoutes(ctx.feeRepository));
   await app.register(chainMetadataRoutes(ctx.chainMetadataRepository));
+  await app.register(
+    streamRoutes({
+      blockRepository: ctx.blockRepository,
+      chainMetadataRepository: ctx.chainMetadataRepository,
+      intervalMs: ctx.streamIntervalMs ?? 1000,
+    }),
+  );
 
   return app;
 }
