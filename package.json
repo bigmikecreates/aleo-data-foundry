@@ -10,6 +10,8 @@
     "lint": "tsc --noEmit",
     "dev:api": "tsx packages/api/src/main.ts",
     "dev:ingestor": "tsx packages/ingestor/src/main.ts",
+    "dev:backfill": "tsx packages/ingestor/src/backfill-main.ts",
+    "dev:consumer": "tsx packages/ingestor/src/consumer-main.ts",
     "db:up": "docker-compose up -d",
     "db:down": "docker-compose down",
     "db:migrate": "tsx packages/db/src/migrate.ts"

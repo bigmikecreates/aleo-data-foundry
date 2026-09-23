@@ -16,5 +16,24 @@ services:
       timeout: 5s
       retries: 5
 
+  redpanda:
+    image: redpandadata/redpanda:v26.2.3
+    container_name: aleo-foundry-redpanda
+    ports:
+      - "9092:9092"
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - >
+        exec rpk redpanda start --overprovisioned --smp 1 --memory 512M
+        --reserve-memory 0M --node-id 0 --check=false
+        --kafka-addr PLAIN://0.0.0.0:9092
+        --advertise-kafka-addr PLAIN://localhost:9092
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health --exit-when-clean -t 5"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 volumes:
   postgres_data:
