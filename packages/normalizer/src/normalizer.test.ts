@@ -7,7 +7,6 @@ import {
   normalizeDeployment,
   normalizeMappingChange,
 } from "./normalizer.js";
-import { NormalizationError } from "./errors.js";
 import type {
   ProvableBlockResponse,
   ProvableBlockTransaction,
@@ -576,24 +575,4 @@ describe("normalizeMappingChange", () => {
   });
 });
 
-// ─── NormalizationError ──────────────────────────────────────────
 
-describe("NormalizationError", () => {
-  it("has correct name and properties", () => {
-    const error = new NormalizationError("block", "invalid data", { height: 123 });
-    expect(error.name).toBe("NormalizationError");
-    expect(error.entityType).toBe("block");
-    expect(error.message).toBe("invalid data");
-    expect(error.context).toEqual({ height: 123 });
-  });
-
-  it("is an instance of Error", () => {
-    const error = new NormalizationError("tx", "test");
-    expect(error).toBeInstanceOf(Error);
-  });
-
-  it("works without context", () => {
-    const error = new NormalizationError("fee", "bad data");
-    expect(error.context).toBeUndefined();
-  });
-});

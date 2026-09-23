@@ -5,8 +5,8 @@ export interface TransitionRow {
   tx_id: string;
   program_id: string;
   function_name: string;
-  inputs_json: unknown;
-  outputs_json: unknown;
+  inputs_json: string;
+  outputs_json: string;
   tpk: string;
   tcm: string;
   created_at: string;

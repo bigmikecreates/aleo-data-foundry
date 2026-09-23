@@ -21,12 +21,11 @@ function createFeeInsert(overrides?: Partial<FeeInsert>): FeeInsert {
 }
 
 function createFeeRow(overrides?: Partial<FeeInsert> & { id?: number }) {
-  const insert = createFeeInsert(overrides);
   return {
     id: 1,
-    ...insert,
+    ...createFeeInsert(overrides),
     created_at: new Date().toISOString(),
-    ...('id' in (overrides ?? {}) ? { id: overrides?.id } : {}),
+    ...(overrides?.id !== undefined ? { id: overrides.id } : {}),
   };
 }
 
