@@ -163,5 +163,6 @@ The API serves mobile privacy wallets. Mobile clients have specific constraints:
 - Postgres schema (Phase 1a Sprint 3)
 - REST API contracts (Phase 1a Sprint 4)
 - OpenAPI spec (Phase 1a Sprint 4)
-- Privacy model details (see specs/001-privacy-model.md)
-- Data quality checks (see specs/002-data-quality.md)
+- Privacy model details (see specs/009-privacy-model.md)
+
+- Data quality checks (see specs/010-data-quality.md)
