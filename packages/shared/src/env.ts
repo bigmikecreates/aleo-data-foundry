@@ -9,6 +9,9 @@ const EnvSchema = z.object({
   POLLING_INTERVAL_MS: z.coerce.number().int().positive().default(1000),
   CHECKPOINT_DIR: z.string().default("./checkpoints"),
   API_PORT: z.coerce.number().int().positive().default(3000),
+  KAFKA_BROKERS: z.string().default("localhost:9092"),
+  KAFKA_CLIENT_ID: z.string().default("aleo-data-foundry"),
+  KAFKA_CONSUMER_GROUP: z.string().default("aleo-foundry-consumer"),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
