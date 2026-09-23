@@ -31,6 +31,8 @@ async function main() {
     mappingChangeRepository: new MappingChangeRepository(client),
     feeRepository: new FeeRepository(client),
     chainMetadataRepository: new ChainMetadataRepository(client),
+    apiKeys: env.API_KEYS.split(",").map((k) => k.trim()).filter(Boolean),
+    streamIntervalMs: env.BLOCK_STREAM_INTERVAL_MS,
   };
 
   const app = await buildServer(ctx);

@@ -9,6 +9,8 @@ const EnvSchema = z.object({
   POLLING_INTERVAL_MS: z.coerce.number().int().positive().default(1000),
   CHECKPOINT_DIR: z.string().default("./checkpoints"),
   API_PORT: z.coerce.number().int().positive().default(3000),
+  API_KEYS: z.string().default(""),
+  BLOCK_STREAM_INTERVAL_MS: z.coerce.number().int().positive().default(1000),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
