@@ -6,6 +6,10 @@ import type {
 import { createCheckpoint } from "@aleo-foundry/shared";
 import { CheckpointStore } from "./checkpoint-store.js";
 import { ApiError, RateLimitError } from "./errors.js";
+import {
+  ParallelBlockFetcher,
+  DEFAULT_MAX_BLOCK_RETRIES,
+} from "./parallel-block-fetcher.js";
 
 // ─── Types ────────────────────────────────────────────────────────
 
@@ -28,18 +32,18 @@ export interface PollerConfig {
   maxBlockRetries?: number;
   /** Starting height if no checkpoint exists (default: 0 = genesis). */
   startHeight?: number;
+  /** Heights fetched concurrently per cycle (default: 1 = sequential). */
+  maxConcurrency?: number;
 }
 
 // ─── Poller ───────────────────────────────────────────────────────
-
-const DEFAULT_MAX_BLOCK_RETRIES = 3;
-const RETRY_BASE_MS = 1000;
 
 export class Poller {
   private readonly source: ChainSource;
   private readonly checkpointStore: CheckpointStore;
   private readonly config: Required<PollerConfig>;
   private readonly onBlock: BlockCallback;
+  private readonly fetcher: ParallelBlockFetcher;
   private abortController: AbortController | null = null;
 
   constructor(
@@ -53,9 +57,14 @@ export class Poller {
     this.config = {
       maxBlockRetries: DEFAULT_MAX_BLOCK_RETRIES,
       startHeight: 0,
+      maxConcurrency: 1,
       ...config,
     };
     this.onBlock = onBlock;
+    this.fetcher = new ParallelBlockFetcher(source, {
+      maxConcurrency: this.config.maxConcurrency,
+      maxBlockRetries: this.config.maxBlockRetries,
+    });
   }
 
   /**
@@ -76,27 +85,30 @@ export class Poller {
 
     let lastProcessedHeight = startHeight - 1;
 
-    for (let height = startHeight; height <= latestHeight; height++) {
-      const block = await this.fetchBlockWithRetry(height);
-      if (!block) {
-        // Skip block after max retries
-        continue;
+    await this.fetcher.fetchRange(startHeight, latestHeight, async (result) => {
+      if (result.data === null) {
+        // Skipped after retries exhausted — do not advance the checkpoint
+        return;
       }
 
-      const { block: blockResponse, transactions } = block;
+      const { height, data } = result;
 
-      await this.onBlock({ height, block: blockResponse, transactions });
+      await this.onBlock({
+        height,
+        block: data.block,
+        transactions: data.transactions,
+      });
 
       const cp = createCheckpoint(
         this.config.source,
         this.config.network,
         height,
-        blockResponse.block_hash,
+        data.block.block_hash,
       );
       await this.checkpointStore.save(cp);
 
       lastProcessedHeight = height;
-    }
+    });
 
     return lastProcessedHeight >= startHeight ? lastProcessedHeight : null;
   }
@@ -136,75 +148,6 @@ export class Poller {
   stop(): void {
     this.abortController?.abort();
     this.abortController = null;
-  }
-
-  private async fetchBlockWithRetry(
-    height: number,
-  ): Promise<{ block: ProvableBlockResponse; transactions: ProvableTransactionResponse[] } | null> {
-    const block = await this.fetchBlock(height);
-    if (!block) return null;
-
-    // Transactions are required for completeness — retry with backoff and fail
-    // the block if they cannot be fetched, so it is never marked processed.
-    for (let attempt = 0; attempt <= this.config.maxBlockRetries; attempt++) {
-      try {
-        const transactions = await this.source.getBlockTransactions(height);
-        return { block, transactions };
-      } catch (error) {
-        // Don't retry client errors (4xx)
-        if (error instanceof ApiError && error.status >= 400 && error.status < 500) {
-          if (error.status === 404) {
-            return { block, transactions: [] }; // No transactions for this block
-          }
-          throw error; // Other 4xx: rethrow
-        }
-
-        if (error instanceof RateLimitError) {
-          throw error; // Let the outer loop handle rate limits
-        }
-
-        // Exponential backoff for 5xx and network errors
-        if (attempt < this.config.maxBlockRetries) {
-          const delay = RETRY_BASE_MS * Math.pow(2, attempt);
-          await new Promise((resolve) => setTimeout(resolve, delay));
-        } else {
-          throw error; // Max retries exhausted — fail the block
-        }
-      }
-    }
-
-    throw new Error(`Failed to fetch transactions for block ${height}`);
-  }
-
-  private async fetchBlock(height: number): Promise<ProvableBlockResponse | null> {
-    const maxRetries = this.config.maxBlockRetries;
-
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        return await this.source.getBlock(height);
-      } catch (error) {
-        // Don't retry client errors (4xx)
-        if (error instanceof ApiError && error.status >= 400 && error.status < 500) {
-          if (error.status === 404) {
-            return null; // Block doesn't exist yet
-          }
-          throw error; // Other 4xx: rethrow
-        }
-
-        if (error instanceof RateLimitError) {
-          throw error; // Let the outer loop handle rate limits
-        }
-
-        // Exponential backoff for 5xx and network errors
-        if (attempt < maxRetries) {
-          const delay = RETRY_BASE_MS * Math.pow(2, attempt);
-          await new Promise((resolve) => setTimeout(resolve, delay));
-        }
-      }
-    }
-
-    // Max retries exhausted — skip this block
-    return null;
   }
 
   private sleep(ms: number, signal?: AbortSignal): Promise<void> {

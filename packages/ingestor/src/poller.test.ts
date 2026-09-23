@@ -397,6 +397,40 @@ describe("Poller", () => {
     });
   });
 
+  describe("runOnce (parallel)", () => {
+    it("processes heights in order with maxConcurrency > 1", async () => {
+      const source = createMockSource({
+        getLatestHeight: vi.fn().mockResolvedValue(4),
+        getBlock: vi.fn().mockImplementation((h: number) =>
+          h % 2 === 0
+            ? new Promise((resolve) =>
+                setTimeout(() => resolve(makeBlockWithHeight(h)), 25),
+              )
+            : Promise.resolve(makeBlockWithHeight(h)),
+        ),
+      });
+      const store = new CheckpointStore(filePath);
+      const heights: number[] = [];
+
+      const poller = new Poller(source, store, {
+        network: "testnet",
+        source: "provable-api",
+        pollingIntervalMs: 100,
+        startHeight: 0,
+        maxConcurrency: 3,
+      }, async (data) => {
+        heights.push(data.height);
+      });
+
+      const result = await poller.runOnce();
+
+      expect(heights).toEqual([0, 1, 2, 3, 4]);
+      expect(result).toBe(4);
+      const checkpoint = await store.load();
+      expect(checkpoint!.lastHeight).toBe(4);
+    });
+  });
+
   describe("start/stop", () => {
     it("can be stopped gracefully", async () => {
       const source = createMockSource({

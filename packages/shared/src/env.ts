@@ -7,6 +7,7 @@ const EnvSchema = z.object({
     .default("postgresql://foundry:foundry@localhost:5432/aleo_foundry"),
   NETWORK: z.enum(["testnet", "mainnet"]).default("testnet"),
   POLLING_INTERVAL_MS: z.coerce.number().int().positive().default(1000),
+  INGESTOR_MAX_CONCURRENCY: z.coerce.number().int().positive().default(1),
   CHECKPOINT_DIR: z.string().default("./checkpoints"),
   API_PORT: z.coerce.number().int().positive().default(3000),
   KAFKA_BROKERS: z.string().default("localhost:9092"),
