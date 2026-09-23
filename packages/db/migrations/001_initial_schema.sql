@@ -39,8 +39,8 @@ CREATE TABLE IF NOT EXISTS transitions (
   tx_id VARCHAR(64) NOT NULL REFERENCES transactions(tx_id),
   program_id VARCHAR(64) NOT NULL,
   function_name VARCHAR(64) NOT NULL,
-  inputs_json JSONB NOT NULL,
-  outputs_json JSONB NOT NULL,
+  inputs_json TEXT NOT NULL,
+  outputs_json TEXT NOT NULL,
   tpk VARCHAR(128) NOT NULL,
   tcm VARCHAR(128) NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS mapping_changes (
 -- Fees table
 CREATE TABLE IF NOT EXISTS fees (
   id BIGSERIAL PRIMARY KEY,
-  tx_id VARCHAR(64) NOT NULL REFERENCES transactions(tx_id),
+  tx_id VARCHAR(64) NOT NULL UNIQUE REFERENCES transactions(tx_id),
   transition_id VARCHAR(64) NOT NULL,
   payer VARCHAR(64) NOT NULL,
   amount BIGINT NOT NULL,
@@ -98,4 +98,3 @@ CREATE INDEX IF NOT EXISTS idx_transitions_tx_id ON transitions(tx_id);
 CREATE INDEX IF NOT EXISTS idx_transitions_program_id ON transitions(program_id);
 CREATE INDEX IF NOT EXISTS idx_mapping_changes_tx_id ON mapping_changes(tx_id);
 CREATE INDEX IF NOT EXISTS idx_mapping_changes_program_id ON mapping_changes(program_id);
-CREATE INDEX IF NOT EXISTS idx_fees_tx_id ON fees(tx_id);

@@ -309,6 +309,92 @@ describe("Poller", () => {
       // Should succeed after 2 retries
       expect(blocks).toEqual([0, 1]);
     });
+
+    it("retries transactions fetch on 5xx before success", async () => {
+      let txCalls = 0;
+      const source = createMockSource({
+        getLatestHeight: vi.fn().mockResolvedValue(0),
+        getBlock: vi.fn().mockResolvedValue(makeBlockWithHeight(0)),
+        getBlockTransactions: vi.fn().mockImplementation(() => {
+          txCalls++;
+          if (txCalls <= 2) {
+            return Promise.reject(new ApiError(500, "Server error"));
+          }
+          return Promise.resolve([]);
+        }),
+      });
+      const store = new CheckpointStore(filePath);
+      const blocks: number[] = [];
+
+      const poller = new Poller(source, store, {
+        network: "testnet",
+        source: "provable-api",
+        pollingIntervalMs: 100,
+        startHeight: 0,
+        maxBlockRetries: 3,
+      }, async (data) => {
+        blocks.push(data.height);
+      });
+
+      await poller.runOnce();
+
+      // Succeeds after 2 retries
+      expect(blocks).toEqual([0]);
+      expect(txCalls).toBe(3);
+    });
+
+    it("rethrows when transactions fetch is exhausted instead of marking block processed", async () => {
+      const source = createMockSource({
+        getLatestHeight: vi.fn().mockResolvedValue(2),
+        getBlock: vi.fn().mockImplementation((h: number) =>
+          Promise.resolve(makeBlockWithHeight(h)),
+        ),
+        getBlockTransactions: vi.fn().mockRejectedValue(
+          new ApiError(500, "Server error"),
+        ),
+      });
+      const store = new CheckpointStore(filePath);
+
+      const poller = new Poller(source, store, {
+        network: "testnet",
+        source: "provable-api",
+        pollingIntervalMs: 100,
+        startHeight: 0,
+        maxBlockRetries: 1,
+      }, vi.fn());
+
+      await expect(poller.runOnce()).rejects.toThrow(ApiError);
+
+      // Block must not be marked processed
+      const checkpoint = await store.load();
+      expect(checkpoint).toBeNull();
+    });
+
+    it("treats block transactions 404 as empty", async () => {
+      const source = createMockSource({
+        getLatestHeight: vi.fn().mockResolvedValue(0),
+        getBlock: vi.fn().mockResolvedValue(makeBlockWithHeight(0)),
+        getBlockTransactions: vi.fn().mockRejectedValue(
+          new ApiError(404, "Not found"),
+        ),
+      });
+      const store = new CheckpointStore(filePath);
+      const data: BlockData[] = [];
+
+      const poller = new Poller(source, store, {
+        network: "testnet",
+        source: "provable-api",
+        pollingIntervalMs: 100,
+        startHeight: 0,
+      }, async (blockData) => {
+        data.push(blockData);
+      });
+
+      await poller.runOnce();
+
+      expect(data).toHaveLength(1);
+      expect(data[0].transactions).toEqual([]);
+    });
   });
 
   describe("start/stop", () => {

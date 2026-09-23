@@ -1,4 +1,3 @@
-export { NormalizationError } from "./errors.js";
 export {
   normalizeBlock,
   normalizeTransaction,

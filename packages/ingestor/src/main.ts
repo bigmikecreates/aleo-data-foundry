@@ -106,8 +106,6 @@ async function main() {
     for (const tx of txResponses) {
       if (tx.finalize && tx.finalize.length > 0) {
         const txId = tx.id;
-        const blockTx = blockTxs.find((bt) => bt.transaction.id === txId);
-        const indexInBlock = blockTx?.index ?? 0;
 
         for (const action of tx.finalize as ProvableFinalizeAction[]) {
           const programId = action.mapping_id?.split("/")[0] ?? "";

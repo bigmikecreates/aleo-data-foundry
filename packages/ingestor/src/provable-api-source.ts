@@ -6,19 +6,17 @@ import {
   type ProvableTransactionResponse,
 } from "@aleo-foundry/shared";
 import { RateLimiter } from "./rate-limiter.js";
-import { ApiError } from "./errors.js";
+import { ApiError, RateLimitError } from "./errors.js";
 
 const MAX_RETRIES = 3;
 const RETRY_BASE_MS = 1000;
 
 export class ProvableApiSource implements ChainSource {
   private readonly baseUrl: string;
-  private readonly network: string;
   private readonly rateLimiter: RateLimiter;
 
   constructor(config: NetworkConfig) {
     this.baseUrl = config.apiBaseUrl;
-    this.network = config.network;
     this.rateLimiter = new RateLimiter({
       requestsPerSecond: config.rateLimit.requestsPerSecond,
       requestsPerDay: config.rateLimit.requestsPerDay,
@@ -72,7 +70,10 @@ export class ProvableApiSource implements ChainSource {
 
       try {
         const url = `${this.baseUrl}${path}`;
-        const response = await fetch(url);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30_000);
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
 
         if (response.status === 429) {
           throw new ApiError(429, "Rate limited by upstream");
@@ -85,6 +86,11 @@ export class ProvableApiSource implements ChainSource {
         return response.json();
       } catch (error) {
         lastError = error as Error;
+
+        // Local rate-limit exhaustion: propagate immediately
+        if (error instanceof RateLimitError) {
+          throw error;
+        }
 
         // 4xx (except 429) are non-retryable
         if (error instanceof ApiError && error.status >= 400 && error.status < 500 && error.status !== 429) {

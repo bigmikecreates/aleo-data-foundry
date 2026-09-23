@@ -141,13 +141,47 @@ export class Poller {
   private async fetchBlockWithRetry(
     height: number,
   ): Promise<{ block: ProvableBlockResponse; transactions: ProvableTransactionResponse[] } | null> {
+    const block = await this.fetchBlock(height);
+    if (!block) return null;
+
+    // Transactions are required for completeness — retry with backoff and fail
+    // the block if they cannot be fetched, so it is never marked processed.
+    for (let attempt = 0; attempt <= this.config.maxBlockRetries; attempt++) {
+      try {
+        const transactions = await this.source.getBlockTransactions(height);
+        return { block, transactions };
+      } catch (error) {
+        // Don't retry client errors (4xx)
+        if (error instanceof ApiError && error.status >= 400 && error.status < 500) {
+          if (error.status === 404) {
+            return { block, transactions: [] }; // No transactions for this block
+          }
+          throw error; // Other 4xx: rethrow
+        }
+
+        if (error instanceof RateLimitError) {
+          throw error; // Let the outer loop handle rate limits
+        }
+
+        // Exponential backoff for 5xx and network errors
+        if (attempt < this.config.maxBlockRetries) {
+          const delay = RETRY_BASE_MS * Math.pow(2, attempt);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        } else {
+          throw error; // Max retries exhausted — fail the block
+        }
+      }
+    }
+
+    throw new Error(`Failed to fetch transactions for block ${height}`);
+  }
+
+  private async fetchBlock(height: number): Promise<ProvableBlockResponse | null> {
     const maxRetries = this.config.maxBlockRetries;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        const block = await this.source.getBlock(height);
-        const transactions = await this.source.getBlockTransactions(height);
-        return { block, transactions };
+        return await this.source.getBlock(height);
       } catch (error) {
         // Don't retry client errors (4xx)
         if (error instanceof ApiError && error.status >= 400 && error.status < 500) {
