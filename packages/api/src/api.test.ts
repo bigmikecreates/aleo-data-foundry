@@ -91,8 +91,8 @@ const MOCK_TRANSITION = {
   tx_id: "at1tx",
   program_id: "credits.aleo",
   function_name: "transfer_public",
-  inputs_json: [] as unknown[],
-  outputs_json: [] as unknown[],
+  inputs_json: "[]",
+  outputs_json: "[]",
   tpk: "tpk123",
   tcm: "tcm456",
   created_at: "2024-06-03T12:00:00.000Z",
@@ -507,7 +507,7 @@ describe("Transactions", () => {
       expect(body.data.network).toBe("testnet");
     });
 
-    it("serializes bigint block_height as string", async () => {
+    it("preserves block_height as number", async () => {
       const response = await app.inject({
         method: "GET",
         url: "/transactions/at1tx",

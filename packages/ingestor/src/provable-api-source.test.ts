@@ -69,6 +69,7 @@ describe("ProvableApiSource", () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       "https://api.provable.com/v2/testnet/height",
+      expect.any(Object),
     );
   });
 
@@ -108,6 +109,7 @@ describe("ProvableApiSource", () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       "https://api.provable.com/v2/testnet/block/999",
+      expect.any(Object),
     );
   });
 
@@ -199,6 +201,7 @@ describe("ProvableApiSource", () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       "https://api.provable.com/v2/testnet/block/42/transactions",
+      expect.any(Object),
     );
   });
 
@@ -238,6 +241,7 @@ describe("ProvableApiSource", () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       "https://api.provable.com/v2/testnet/transaction/abc",
+      expect.any(Object),
     );
   });
 
@@ -278,6 +282,7 @@ describe("ProvableApiSource", () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       "https://api.provable.com/v2/testnet/program/token.aleo",
+      expect.any(Object),
     );
   });
 
@@ -423,6 +428,7 @@ describe("ProvableApiSource", () => {
     expect(height).toBe(50000);
     expect(fetchMock).toHaveBeenCalledWith(
       "https://api.provable.com/v2/mainnet/height",
+      expect.any(Object),
     );
   });
 });
