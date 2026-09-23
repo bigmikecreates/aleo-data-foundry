@@ -1,6 +1,6 @@
 # ADR-0006: In-process pipeline today, streaming (Redpanda) later
 
-- **Status:** Accepted (Sprints 1-7); superseded by ADR when Sprint 10 lands
+- **Status:** Accepted (Sprints 1-7); superseded by ADR-0007 (Sprint 10)
 - **Date:** 2026-09-23
 
 ## Context

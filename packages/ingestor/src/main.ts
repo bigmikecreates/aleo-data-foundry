@@ -1,18 +1,7 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { loadEnv, parseDatabaseUrl, TESTNET_CONFIG, MAINNET_CONFIG } from "@aleo-foundry/shared";
+import { loadEnv, TESTNET_CONFIG, MAINNET_CONFIG } from "@aleo-foundry/shared";
 import type { Network, ProvableFinalizeAction } from "@aleo-foundry/shared";
-import {
-  DatabaseClient,
-  BlockRepository,
-  TransactionRepository,
-  TransitionRepository,
-  ProgramRepository,
-  MappingChangeRepository,
-  FeeRepository,
-  ChainMetadataRepository,
-  migrate,
-} from "@aleo-foundry/db";
 import {
   normalizeBlock,
   normalizeTransaction,
@@ -21,33 +10,37 @@ import {
   normalizeDeployment,
   normalizeMappingChange,
 } from "@aleo-foundry/normalizer";
+import {
+  createKafkaClient,
+  createKafkaProducer,
+  PipelineMetrics,
+  DlqProducer,
+  EventPublisher,
+} from "@aleo-foundry/streaming";
+import type { PublishEventInput } from "@aleo-foundry/streaming";
 import { ProvableApiSource } from "./provable-api-source.js";
 import { CheckpointStore } from "./checkpoint-store.js";
 import { Poller } from "./poller.js";
 
 async function main() {
   const env = loadEnv();
-  const dbConfig = parseDatabaseUrl(env.DATABASE_URL);
   const networkConfig = env.NETWORK === "testnet" ? TESTNET_CONFIG : MAINNET_CONFIG;
   const network: Network = env.NETWORK;
 
   console.log(`Starting ingestor for ${env.NETWORK}`);
 
-  // Database
-  const client = new DatabaseClient(dbConfig);
-  console.log("Running migrations...");
-  await migrate(client);
-  console.log("Migrations complete.");
-
-  const repos = {
-    blockRepository: new BlockRepository(client),
-    transactionRepository: new TransactionRepository(client),
-    transitionRepository: new TransitionRepository(client),
-    programRepository: new ProgramRepository(client),
-    mappingChangeRepository: new MappingChangeRepository(client),
-    feeRepository: new FeeRepository(client),
-    chainMetadataRepository: new ChainMetadataRepository(client),
-  };
+  const kafka = createKafkaClient({
+    brokers: env.KAFKA_BROKERS.split(",").map((b) => b.trim()).filter(Boolean),
+    clientId: env.KAFKA_CLIENT_ID,
+  });
+  const metrics = new PipelineMetrics();
+  const dlq = new DlqProducer(createKafkaProducer(kafka), metrics);
+  const publisher = new EventPublisher(createKafkaProducer(kafka), {
+    network,
+    metrics,
+    dlq,
+  });
+  await publisher.connect();
 
   // Ingestor
   const source = new ProvableApiSource(networkConfig);
@@ -61,73 +54,188 @@ async function main() {
   }, async (data) => {
     const { height, block } = data;
     const blockHash = block.block_hash;
+    const blockKey = `${height}:${blockHash}`;
 
-    // Normalize and insert block
+    await publisher.publish({
+      entity: "blocks",
+      variant: "raw",
+      naturalKey: blockKey,
+      payload: block,
+    });
+
     const blockResult = normalizeBlock(network, height, block);
-    await repos.blockRepository.insert(blockResult.serving);
+    await publisher.publish({
+      entity: "blocks",
+      variant: "normalized",
+      naturalKey: blockKey,
+      payload: blockResult.serving,
+    });
 
-    // Process block-level transactions (ProvableBlockTransaction[] — wrapped
-    // with status/type/index, already present on the block response)
     const blockTxs = block.transactions;
     for (const blockTx of blockTxs) {
       const body = blockTx.transaction;
       const txId = body.id;
 
-      // Normalize and insert transaction
-      const txResult = normalizeTransaction(network, height, blockHash, blockTx);
-      await repos.transactionRepository.insert(txResult.serving);
+      await publisher.publish({
+        entity: "transactions",
+        variant: "raw",
+        naturalKey: txId,
+        payload: blockTx,
+      });
 
-      // Process execution transitions
+      const txResult = normalizeTransaction(network, height, blockHash, blockTx);
+      await publisher.publish({
+        entity: "transactions",
+        variant: "normalized",
+        naturalKey: txId,
+        payload: txResult.serving,
+      });
+
       if (body.execution) {
         for (const transition of body.execution.transitions) {
+          await publisher.publish({
+            entity: "transitions",
+            variant: "raw",
+            naturalKey: transition.id,
+            payload: transition,
+          });
+
           const transResult = normalizeTransition(network, txId, transition);
-          await repos.transitionRepository.insert(transResult.serving);
+          await publisher.publish({
+            entity: "transitions",
+            variant: "normalized",
+            naturalKey: transition.id,
+            payload: transResult.serving,
+          });
         }
       }
 
-      // Process deployments
-      if (body.type === "deploy") {
-        const deployResult = normalizeDeployment(network, txId, blockResult.serving.timestamp, body);
+      if (body.type === "deploy" && body.deploy !== undefined) {
+        const deployResult = normalizeDeployment(
+          network,
+          txId,
+          blockResult.serving.timestamp,
+          body,
+        );
         if (deployResult) {
-          await repos.programRepository.insert(deployResult.serving);
+          const programId = deployResult.serving.program_id;
+          await publisher.publish({
+            entity: "deployments",
+            variant: "raw",
+            naturalKey: txId,
+            payload: { tx_id: txId, deployment: body.deploy },
+          });
+          await publisher.publish({
+            entity: "programs",
+            variant: "raw",
+            naturalKey: programId,
+            payload: body.deploy,
+          });
+          await publisher.publish({
+            entity: "deployments",
+            variant: "normalized",
+            naturalKey: `${txId}:${programId}`,
+            payload: deployResult.serving,
+          });
+          await publisher.publish({
+            entity: "programs",
+            variant: "normalized",
+            naturalKey: programId,
+            payload: deployResult.serving,
+          });
         }
       }
 
-      // Process fees
       if (body.fee) {
+        await publisher.publish({
+          entity: "fees",
+          variant: "raw",
+          naturalKey: `${txId}:${body.fee.transition.id}`,
+          payload: body.fee,
+        });
+
         const feeResult = normalizeFee(network, txId, body.fee);
-        await repos.feeRepository.insert(feeResult.serving);
+        await publisher.publish({
+          entity: "fees",
+          variant: "normalized",
+          naturalKey: `${txId}:${feeResult.serving.transition_id}`,
+          payload: feeResult.serving,
+        });
       }
     }
 
-    // Process transaction-level finalize actions (mapping changes)
-    // from the Poller's separate transaction responses
     const txResponses = data.transactions;
     for (const tx of txResponses) {
       if (tx.finalize && tx.finalize.length > 0) {
         const txId = tx.id;
-
         for (const action of tx.finalize as ProvableFinalizeAction[]) {
           const programId = action.mapping_id?.split("/")[0] ?? "";
           const transitionId = `${txId}:${action.index}`;
-          const changeResult = normalizeMappingChange(network, txId, transitionId, programId, action);
-          await repos.mappingChangeRepository.insert(changeResult.serving);
+          const naturalKey = `${txId}:${action.index}`;
+
+          await publisher.publish({
+            entity: "mapping-changes",
+            variant: "raw",
+            naturalKey,
+            payload: { tx_id: txId, transition_id: transitionId, action },
+          });
+
+          const changeResult = normalizeMappingChange(
+            network,
+            txId,
+            transitionId,
+            programId,
+            action,
+          );
+          await publisher.publish({
+            entity: "mapping-changes",
+            variant: "normalized",
+            naturalKey,
+            payload: changeResult.serving,
+          });
         }
       }
     }
 
-    // Update chain metadata
-    await repos.chainMetadataRepository.upsert({
-      network: env.NETWORK,
-      latest_height: height,
-      latest_hash: blockHash,
+    const now = new Date().toISOString();
+    await publisher.publish({
+      entity: "chain-metadata",
+      variant: "raw",
+      naturalKey: network,
+      payload: {
+        network,
+        latest_height: height,
+        latest_hash: blockHash,
+      },
+    });
+    await publisher.publish({
+      entity: "chain-metadata",
+      variant: "normalized",
+      naturalKey: network,
+      payload: {
+        network,
+        latest_height: height,
+        latest_hash: blockHash,
+        updated_at: now,
+      },
     });
 
-    console.log(`Processed block ${height}`);
+    console.log(`Published block ${height} events to Kafka`);
   });
 
   console.log("Starting polling...");
   await poller.start();
+
+  const shutdown = async () => {
+    console.log("\nShutting down...");
+    poller.stop();
+    await publisher.disconnect();
+    await dlq.disconnect();
+    process.exit(0);
+  };
+
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
 }
 
 main().catch((err) => {
